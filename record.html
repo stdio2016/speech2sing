@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- inspired by https://github.com/mdn/web-dictaphone -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Record audio</title></head>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/storage.js"></script>
+<body>
+<h1>Record audio</h1>
+<section class="main-controls">
+  <canvas class="visualizer" height="60"></canvas>
+  <p>
+  <label for="timeOrFreq">Show in</label>
+  <select name="timeOrFreq" id="timeOrFreq">
+    <option value="time">Time domain</option>
+    <option value="freq">Frequency</option>
+  </select>
+  </p>
+  <div class="buttons">
+    <button id="btnRecord" disabled>Record</button>
+    <button id="btnStop" disabled>Stop</button>
+  </div>
+</section>
+<section class="sound-clips">
+<audio controls>
+</audio>
+</section>
+<script type="text/javascript" src="js/record.js"></script>
+</body>
+</html>

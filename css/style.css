@@ -1,0 +1,52 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  padding: 0 0.5em;
+}
+
+.visualizer {
+  width: 100%;
+  height: 60px;
+}
+
+.buttons {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.buttons button {
+  height: 2em;
+  flex-grow: 1;
+  padding: 1em;
+  border: 0;
+  margin: 0.5em;
+  height: auto;
+  color: white;
+}
+
+button {
+  background-color: #0ad;
+}
+button:hover, button:focus {
+  background-color: #0ce;
+}
+button:active {
+  background-color: #09c;
+}
+button.red {
+  background-color: #c00;
+}
+button.red:hover, button.red:focus {
+  background-color: #f00;
+}
+button.red:active {
+  background-color: #a00;
+}
+button:disabled {
+  background-color: gray;
+}
