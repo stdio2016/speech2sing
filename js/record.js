@@ -61,7 +61,13 @@ function stopRecordFinally() {
 }
 
 function tryToGetRecorder() {
-  var needs = {"audio": true};
+  var needs = {
+    "audio": {
+      "echoCancellation": {exact: false},
+      "noiseSuppression": false,
+      "sampleSize": 16
+    }
+  };
 
   function onSuccess(stream) {
     audioStream = stream;
