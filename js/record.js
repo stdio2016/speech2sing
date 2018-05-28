@@ -6,7 +6,8 @@ var audioStream;
 var mediaRecorder;
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var canvasCtx = canvas.getContext('2d');
-var analyser = null;
+var analyser = audioCtx.createAnalyser();
+var audioStreamNode = null;
 var dataArray;
 var timeOrFreq = document.getElementById('timeOrFreq');
 var chunks = [];
@@ -33,7 +34,7 @@ function startRecord() {
   }
   btnRecord.classList.add('red');
   btnStop.disabled = false;
-  visualize(audioCtx.createMediaStreamSource(audioStream));
+  visualize(audioStreamNode);
 }
 
 function stopRecord() {
@@ -53,6 +54,10 @@ function stopRecordFinally() {
   saveSound("temp", blob);
   chunks = [];
   btnRecord.disabled = false;
+  getSound("temp").then(function (result) {
+    var audioURL = window.URL.createObjectURL(result);
+    document.querySelector("audio").src = audioURL;
+  });
 }
 
 function tryToGetRecorder() {
@@ -66,7 +71,8 @@ function tryToGetRecorder() {
     btnRecord.disabled = false;
     btnRecord.onclick = startRecord;
     btnStop.onclick = stopRecord;
-    visualize(audioCtx.createMediaStreamSource(audioStream));
+    audioStreamNode = audioCtx.createMediaStreamSource(stream);
+    visualize(audioStreamNode);
   }
 
   function onFailure(err) {
@@ -96,13 +102,17 @@ else {
 }
 
 var visualizeCallbackId = 0;
+var visualizedSource = null;
 function visualize(source) {
   cancelAnimationFrame(visualizeCallbackId);
-  analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
   var bufferLength = analyser.fftSize;
   dataArray = new Uint8Array(bufferLength);
+  if (visualizedSource !== null) {
+    visualizedSource.disconnect(analyser);
+  }
   source.connect(analyser);
+  visualizedSource = source;
   showWave();
 }
 
@@ -136,9 +146,16 @@ function showWave() {
   canvasCtx.stroke();
 }
 
+var audioNode = null;
 function startup() {
+  var audio = document.querySelector("audio");
+  audioNode = audioCtx.createMediaElementSource(audio);
+  audioNode.connect(audioCtx.destination);
+  audio.onplay = function () {
+    audioNode.source = audio;
+    visualize(audioNode);
+  };
   getSound("temp").then(function (result) {
-    var audio = document.querySelector("audio");
     var audioURL = window.URL.createObjectURL(result);
     audio.src = audioURL;
   });
