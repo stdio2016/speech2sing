@@ -35,7 +35,12 @@ function getSound(name, file) {
   var req = s['get'](name);
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
-      resolve(req.result.file);
+      if (req.result && req.result.file) {
+        resolve(req.result.file);
+      }
+      else {
+        reject(null);
+      }
     };
     req.onerror = reject;
   });
