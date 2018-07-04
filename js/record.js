@@ -51,11 +51,21 @@ function recordDataHandler(e) {
   chunks.push(e.data);
 }
 
-var soundId = 1;
+function getDefaultName() {
+  var now = new Date();
+  var y = now.getFullYear();
+  var M = ("0"+(now.getMonth()+1)).slice(-2);
+  var d = ("0"+now.getDate()).slice(-2);
+  var h = ("0"+now.getHours()).slice(-2);
+  var m = ("0"+now.getMinutes()).slice(-2);
+  var s = ("0"+now.getSeconds()).slice(-2);
+  return 'record '+y+'-'+M+'-'+d+' '+h+'-'+m+'-'+s;
+}
+
 function stopRecordFinally() {
   var blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
-  var name = prompt("Enter name for this sound", "sound" + soundId);
-  soundId++;
+  var name = prompt("Enter name for this sound", getDefaultName());
+  if (name === null) return ;
   
   saveSound(name, blob);
   chunks = [];
@@ -187,7 +197,7 @@ function addClipInterface(name) {
   btnDel.onclick = function () {
     deleteSound(name);
     clip.remove();
-    files[names] = 0;
+    files[name] = 0;
   };
   clip.appendChild(lbl);
   lbl.appendChild(btnPlay);
