@@ -65,12 +65,12 @@ function getDefaultName() {
 function stopRecordFinally() {
   var blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
   var name = prompt("Enter name for this sound", getDefaultName());
-  if (name === null) return ;
-  
-  saveSound(name, blob);
   chunks = [];
+  if (name) {
+    saveSound(name, blob);
+    addClipInterface(name);
+  }
   btnRecord.disabled = false;
-  addClipInterface(name);
 }
 
 function tryToGetRecorder() {
