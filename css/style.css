@@ -20,12 +20,14 @@ body {
 }
 
 .buttons button {
-  height: 2em;
   flex-grow: 1;
   padding: 1em;
-  border: 0;
   margin: 0.5em;
+}
+
+button {
   height: auto;
+  border: 0;
   color: white;
 }
 
@@ -49,4 +51,26 @@ button.red:active {
 }
 button:disabled {
   background-color: gray;
+}
+
+.sound-clips p {
+  margin: 0;
+}
+
+.sound-clips .clip {
+  margin: 1em 0;
+  border-top: 1px solid gray;
+  padding-top: 0.5em;
+  box-sizing: border-box;
+}
+
+.sound-clips .clip p {
+  width: 100%;
+  display: inline-block;
+}
+
+.sound-clips .clip button {
+  float: right;
+  padding: 0.5em;
+  margin: 0 0.5em;
 }

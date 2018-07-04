@@ -12,6 +12,8 @@ var dataArray;
 var timeOrFreq = document.getElementById('timeOrFreq');
 var chunks = [];
 var files = {};
+var clips = document.querySelector(".sound-clips");
+var audioElt = document.querySelector("audio");
 
 btnRecord.disabled = true;
 btnStop.disabled = true;
@@ -49,15 +51,16 @@ function recordDataHandler(e) {
   chunks.push(e.data);
 }
 
+var soundId = 1;
 function stopRecordFinally() {
   var blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
-  saveSound("temp", blob);
+  var name = prompt("Enter name for this sound", "sound" + soundId);
+  soundId++;
+  
+  saveSound(name, blob);
   chunks = [];
   btnRecord.disabled = false;
-  getSound("temp").then(function (result) {
-    var audioURL = window.URL.createObjectURL(result);
-    document.querySelector("audio").src = audioURL;
-  });
+  addClipInterface(name);
 }
 
 function tryToGetRecorder() {
@@ -110,6 +113,9 @@ else {
 var visualizeCallbackId = 0;
 var visualizedSource = null;
 function visualize(source) {
+  if (source == null) {
+    return ;
+  }
   cancelAnimationFrame(visualizeCallbackId);
   analyser.fftSize = 2048;
   var bufferLength = analyser.fftSize;
@@ -152,17 +158,59 @@ function showWave() {
   canvasCtx.stroke();
 }
 
+function addClipInterface(name) {
+  if (files[name]) return "Loaded";
+  var clip = document.createElement("div");
+  clip.className = "clip";
+  var lbl = document.createElement("p");
+  lbl.textContent = name;
+  var btnPlay = document.createElement("button");
+  btnPlay.textContent = "Play";
+  btnPlay.onclick = function () {
+    audioElt.hidden = false;
+    // move audio control to current clip
+    audioElt.remove();
+    clip.appendChild(audioElt);
+    getSound(name).then(function (result) {
+      if (sessionStorage.speech2sing_prevBlobURL) {
+        window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
+      }
+      var audioURL = window.URL.createObjectURL(result);
+      audioElt.src = audioURL;
+      sessionStorage.speech2sing_prevBlobURL = audioURL;
+      audioElt.play();
+    });
+  };
+  var btnDel = document.createElement("button");
+  btnDel.className = "red";
+  btnDel.textContent = "Delete";
+  btnDel.onclick = function () {
+    deleteSound(name);
+    clip.remove();
+    files[names] = 0;
+  };
+  clip.appendChild(lbl);
+  lbl.appendChild(btnPlay);
+  lbl.appendChild(btnDel);
+  clips.appendChild(clip);
+  files[name] = 1;
+  console.log("added" + name);
+}
+
 var audioNode = null;
 function startup() {
-  var audio = document.querySelector("audio");
-  audioNode = audioCtx.createMediaElementSource(audio);
+  getSoundNames().then(function (names) {
+    names.forEach(addClipInterface);
+  })['catch'](function (x) {
+    console.error(x);
+  });
+  audioNode = audioCtx.createMediaElementSource(audioElt);
   audioNode.connect(audioCtx.destination);
-  audio.onplay = function () {
-    audioNode.source = audio;
+  audioElt.onplay = function () {
+    audioNode.source = audioElt;
     visualize(audioNode);
   };
-  getSound("temp").then(function (result) {
-    var audioURL = window.URL.createObjectURL(result);
-    audio.src = audioURL;
-  });
+  audioElt.onended = function () {
+    visualize(audioStreamNode);
+  };
 }
