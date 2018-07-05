@@ -195,6 +195,7 @@ function addClipInterface(name) {
   btnDel.className = "red";
   btnDel.textContent = "Delete";
   btnDel.onclick = function () {
+    if (!confirm("Really want to delete this sound?")) return ;
     deleteSound(name);
     clip.remove();
     files[name] = 0;
