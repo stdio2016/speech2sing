@@ -113,13 +113,6 @@ function tryToGetRecorder() {
   navigator.mediaDevices.getUserMedia(needs).then(onSuccess, onFailure);
 };
 
-if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-  tryToGetRecorder();
-}
-else {
-  alert("Your browser does not support audio recording");
-}
-
 var visualizeCallbackId = 0;
 var visualizedSource = null;
 function visualize(source) {
@@ -169,7 +162,7 @@ function showWave() {
 }
 
 function addClipInterface(name) {
-  if (files[name]) return "Loaded";
+  if (files['f'+name]) return "Loaded";
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
@@ -198,13 +191,13 @@ function addClipInterface(name) {
     if (!confirm("Really want to delete this sound?")) return ;
     deleteSound(name);
     clip.remove();
-    files[name] = 0;
+    files['f'+name] = 0;
   };
   clip.appendChild(lbl);
   lbl.appendChild(btnPlay);
   lbl.appendChild(btnDel);
   clips.appendChild(clip);
-  files[name] = 1;
+  files['f'+name] = 1;
   console.log("added" + name);
 }
 
@@ -224,4 +217,10 @@ function startup() {
   audioElt.onended = function () {
     visualize(audioStreamNode);
   };
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    tryToGetRecorder();
+  }
+  else {
+    alert("Your browser does not support audio recording");
+  }
 }
