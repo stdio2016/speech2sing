@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>change pitch</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/storage.js"></script>
+</head>
+<body>
+<p>pitch
+<input id="inPitch" type="range" value="0" min="-12" max="12" step="1"/>
+</p>
+<section class="sound-clips">
+</section>
+<script>
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var clips = document.querySelector('.sound-clips');
+function addClipInterface(name) {
+  var clip = document.createElement("div");
+  clip.className = "clip";
+  var lbl = document.createElement("p");
+  lbl.textContent = name;
+  var btnPlay = document.createElement("button");
+  btnPlay.textContent = "Play";
+  btnPlay.onclick = function () {
+    getSound(name).then(function (file) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        audioCtx.decodeAudioData(fr.result, getBuffer, error);
+      };
+      fr.readAsArrayBuffer(file);
+      function getBuffer(buf) {
+        var snd = audioCtx.createBufferSource();
+        snd.buffer = buf;
+        snd.connect(audioCtx.destination);
+        snd.playbackRate.value = Math.pow(2, inPitch.value/12);
+        (snd.start || snd.noteOn).call(snd);
+      }
+      function error() {
+        console.error("cannot decode audio");
+      }
+    }).catch(function (buf) {
+      
+    });
+  };
+  clip.appendChild(lbl);
+  lbl.appendChild(btnPlay);
+  clips.appendChild(clip);
+  console.log("added" + name);
+}
+
+function startup() {
+  getSoundNames().then(function (names) {
+    names.forEach(addClipInterface);
+  })['catch'](function (x) {
+    console.error(x);
+  });
+}
+
+window.ontouchend = function() {
+  r = actx.createOscillator();
+  (r.start || r.noteOn).call(r);
+  (r.stop || r.noteOff).call(r, actx.currentTime+Math.random()*0.5);
+  r.frequency.value = 880;
+  r.detune.value = Math.random()*100 - 50;
+  s = actx.createGain();
+  s.gain.value = Math.random() * 0.5;
+  r.connect(s);
+  s.connect(actx.destination);
+  window.ontouchend = null;
+}
+</script>
+</body>
+</html>
