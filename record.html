@@ -6,9 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Record audio</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/alertbox.css">
   <script src="js/storage.js"></script>
 </head>
 <body>
+  <!-- alert box -->
+  <div class="center-of-screen grayed-out" id='prompt' style='visibility: hidden; align-items: baseline;'>
+    <!--[if IE]>
+    <form class='prompt-box prompt-box-ie' action="javascript:void 3">
+    <![endif]-->
+    <!--[if !IE]> -->
+    <form class='prompt-box' action="javascript:void 3">
+    <!-- <![endif]-->
+      <div class='description' id='promptMessage'></div>
+      <div class='input'><input id='promptInput'></div>
+      <div class='yesno'>
+        <button onclick="promptCallback(true)" id='promptOK'>OK</button>
+        <button onclick="promptCallback(false)" id='promptCancel'>Cancel</button>
+      </div>
+    </form>
+  </div>
+  <!--[if IE]>
+  <div id='alert' class='alert-box alert-box-ie'>
+  <![endif]-->
+  <!--[if !IE]> -->
+  <div id='alert' class='alert-box' style='visibility: hidden;'>
+  <!-- <![endif]-->
+    <div class='title'>
+      <span>Error</span>
+      <input id='close' class='x' value='X' type='button'>
+    </div>
+    <!--[if IE]>
+    <pre class='description' id='description'>本程式不支援 IE。請改用 Firefox 或 Chrome
+This program does not support IE. Please use Firefox or Chrome.</pre>
+    <![endif]-->
+    <!--[if !IE]> -->
+    <pre class='description' id='description'>錯誤訊息會顯示在這裡</pre>
+    <!-- <![endif]-->
+  </div>
+  <script src='lib/alertbox.js'></script>
+  <!-- end of alert box -->
+
 <h1>Record audio</h1>
 <section class="main-controls">
   <canvas class="visualizer" height="60"></canvas>

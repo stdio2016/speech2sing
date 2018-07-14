@@ -80,15 +80,20 @@ function tryToGetRecorder() {
   };
 
   function onSuccess(stream) {
-    audioStream = stream;
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = recordDataHandler;
-    mediaRecorder.onstop = stopRecordFinally;
-    btnRecord.disabled = false;
-    btnRecord.onclick = startRecord;
-    btnStop.onclick = stopRecord;
-    audioStreamNode = audioCtx.createMediaStreamSource(stream);
-    visualize(audioStreamNode);
+    try {
+      audioStream = stream;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = recordDataHandler;
+      mediaRecorder.onstop = stopRecordFinally;
+      btnRecord.disabled = false;
+      btnRecord.onclick = startRecord;
+      btnStop.onclick = stopRecord;
+      audioStreamNode = audioCtx.createMediaStreamSource(stream);
+      visualize(audioStreamNode);
+    }
+    catch (e) {
+      errorbox(e);
+    }
   }
 
   function onFailure(err) {
