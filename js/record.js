@@ -76,9 +76,6 @@ function stopRecordFinally() {
 function tryToGetRecorder() {
   var needs = {
     "audio": {
-      "echoCancellation": {exact: false},
-      "noiseSuppression": false,
-      "sampleSize": 16
     }
   };
 
