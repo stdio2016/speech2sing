@@ -192,6 +192,11 @@ function addClipInterface(name) {
   btnDel.onclick = function () {
     if (!confirm("Really want to delete this sound?")) return ;
     deleteSound(name);
+    // prevent memory leak
+    if (sessionStorage.speech2sing_prevBlobURL === audioElt.src) {
+      window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
+      sessionStorage.removeItem("speech2sing_prevBlobURL");
+    }
     clip.remove();
     files['f'+name] = 0;
   };
