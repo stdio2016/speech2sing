@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyze pitch</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/storage.js"></script>
+  <script src="lib/fft.js"></script>
+  <script src="js/pitch.js"></script>
+</head>
+<body>
+<h1>Analyze pitch</h1>
+<p><small>(Not finished, very bad)</small></p>
+<p>Choose a sound in browser:</p>
+<p>
+<select class="sound-clips">
+<option value="loading">Loading...</option>
+</select>
+<button id="btnAnalyzeClip" onclick="analyzeClip()">Analyze</button>
+</p>
+<p>Or choose a file:</p>
+<p><input type="file" id="fileSound">
+<button onclick="analyzeFile(fileSound.files[0])">Analyze</button>
+<button onclick="saveToBrowser(fileSound.files[0])">Save to browser</button></p>
+<script src="js/pitch_ui.js"></script>
+</body>
+</html>
