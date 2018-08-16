@@ -76,22 +76,24 @@ function stopRecordFinally() {
 function tryToGetRecorder() {
   var needs = {
     "audio": {
-      "echoCancellation": {exact: false},
-      "noiseSuppression": false,
-      "sampleSize": 16
     }
   };
 
   function onSuccess(stream) {
-    audioStream = stream;
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = recordDataHandler;
-    mediaRecorder.onstop = stopRecordFinally;
-    btnRecord.disabled = false;
-    btnRecord.onclick = startRecord;
-    btnStop.onclick = stopRecord;
-    audioStreamNode = audioCtx.createMediaStreamSource(stream);
-    visualize(audioStreamNode);
+    try {
+      audioStream = stream;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = recordDataHandler;
+      mediaRecorder.onstop = stopRecordFinally;
+      btnRecord.disabled = false;
+      btnRecord.onclick = startRecord;
+      btnStop.onclick = stopRecord;
+      audioStreamNode = audioCtx.createMediaStreamSource(stream);
+      visualize(audioStreamNode);
+    }
+    catch (e) {
+      errorbox(e);
+    }
   }
 
   function onFailure(err) {
@@ -190,6 +192,11 @@ function addClipInterface(name) {
   btnDel.onclick = function () {
     if (!confirm("Really want to delete this sound?")) return ;
     deleteSound(name);
+    // prevent memory leak
+    if (sessionStorage.speech2sing_prevBlobURL === audioElt.src) {
+      window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
+      sessionStorage.removeItem("speech2sing_prevBlobURL");
+    }
     clip.remove();
     files['f'+name] = 0;
   };
