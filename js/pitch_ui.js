@@ -51,12 +51,13 @@ function analyzeFile(file) {
     //var snd = audioCtx.createBufferSource();
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
-    snd.buffer = buf;
+    //snd.buffer = buf;
     var timbreRe = new Float32Array([0.5, 0.4, 0.3, 0.2, 0.1]);
     var timbreIm = new Float32Array([0, 0, 0, 0, 0]);
     var timbre = audioCtx.createPeriodicWave(timbreRe, timbreIm);
     snd.setPeriodicWave(timbre);
     snd.connect(gain);
+    gain.gain.value = 0;
     gain.connect(audioCtx.destination);
     (snd.start || snd.noteOn).call(snd);
     ans.forEach(function (pitch) {

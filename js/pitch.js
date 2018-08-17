@@ -15,7 +15,7 @@ function analyzePitch(buf, smpRate) {
     for (j = 0; j < fftSize/2; j++) {
       var re = result[j*2];
       var im = result[j*2+1];
-      amps[j] = re*re + im*im;
+      amps[j] = Math.sqrt(re*re + im*im);
     }
     var max = 0, freq = 0;
     for (j = Math.floor(fftSize/smpRate * 80); j < fftSize/smpRate * 800; j++) {
@@ -23,7 +23,8 @@ function analyzePitch(buf, smpRate) {
       var smp2 = (amps[j*2] + amps[j*2+1]) / 2;
       var smp3 = (amps[j*3] + amps[j*3+1] + amps[j*3+2]) / 3;
       var smp4 = (amps[j*4] + amps[j*4+1] + amps[j*4+2] + amps[j*4+3]) / 4;
-      var totle = (smp1 + smp2 + smp3 + smp4) / Math.sqrt(j);
+      // exponential decay
+      var totle = (smp1 + smp2/1.2 + smp3/1.4 + smp4/1.7) / Math.sqrt(j);
       if (totle > max) {
         max = totle;
         freq = j;
