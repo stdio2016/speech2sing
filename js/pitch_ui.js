@@ -57,10 +57,10 @@ function analyzeFile(file) {
     var timbre = audioCtx.createPeriodicWave(timbreRe, timbreIm);
     snd.setPeriodicWave(timbre);
     snd.connect(gain);
-    gain.gain.value = 0.4;
     gain.connect(audioCtx.destination);
     (snd.start || snd.noteOn).call(snd);
     ans.forEach(function (pitch) {
+      gain.gain.linearRampToValueAtTime(Math.min(pitch[2] * 4, 0.5), audioCtx.currentTime + pitch[0]);
       snd.frequency.setValueAtTime(pitch[1], audioCtx.currentTime + pitch[0]);
     });
     console.log(buf.length);
