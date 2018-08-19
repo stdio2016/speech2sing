@@ -9,6 +9,7 @@ var canvasCtx = canvas.getContext('2d');
 var analyser = audioCtx.createAnalyser();
 var audioStreamNode = null;
 var dataArray;
+var dataArrayFloat;
 var timeOrFreq = document.getElementById('timeOrFreq');
 var chunks = [];
 var files = {};
@@ -125,6 +126,7 @@ function visualize(source) {
   analyser.fftSize = 2048;
   var bufferLength = analyser.fftSize;
   dataArray = new Uint8Array(bufferLength);
+  dataArrayFloat = [new Float32Array(bufferLength), new Float32Array(bufferLength)];
   if (visualizedSource !== null) {
     visualizedSource.disconnect(analyser);
   }
@@ -139,6 +141,12 @@ function showWave() {
   if (timeOrFreq.value == 'freq') {
     analyser.getByteFrequencyData(dataArray);
     len = analyser.frequencyBinCount * (5000 * 2 / audioCtx.sampleRate);
+  }
+  else if (timeOrFreq.value == 'autocorrelation') {
+    dataArrayFloat[1].set(dataArrayFloat[0]);
+    analyser.getFloatTimeDomainData(dataArrayFloat[0]);
+    len = dataArrayFloat[0].length;
+    realTimeAutocorrelation(dataArrayFloat[1], dataArrayFloat[0], dataArray);
   }
   else {
     analyser.getByteTimeDomainData(dataArray);
