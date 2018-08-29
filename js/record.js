@@ -83,9 +83,15 @@ function tryToGetRecorder() {
   function onSuccess(stream) {
     try {
       audioStream = stream;
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = recordDataHandler;
-      mediaRecorder.onstop = stopRecordFinally;
+      if (window.MediaRecorder) {
+        mediaRecorder = new MediaRecorder(audioStream);
+      }
+      else {
+        var polyfill = audioRecorderPolyfill(audioCtx);
+        mediaRecorder = new polyfill(audioStream);
+      }
+      mediaRecorder.addEventListener("dataavailable", recordDataHandler);
+      mediaRecorder.addEventListener("stop", stopRecordFinally);
       btnRecord.disabled = false;
       btnRecord.onclick = startRecord;
       btnStop.onclick = stopRecord;
