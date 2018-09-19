@@ -33,6 +33,9 @@ function startRecord() {
     btnRecord.innerHTML = "Recording...";
   }
   else {
+    if (!window.MediaRecorder) {
+      mediaRecorder.input = audioStreamNode;
+    }
     mediaRecorder.start();
     btnRecord.innerHTML = "Recording...";
   }
@@ -106,6 +109,9 @@ function tryToGetRecorder() {
       btnRecord.onclick = startRecord;
       btnStop.onclick = stopRecord;
       audioStreamNode = audioCtx.createMediaStreamSource(stream);
+      if (!window.MediaRecorder) {
+        mediaRecorder.input = audioStreamNode;
+      }
       visualize(audioStreamNode);
     }
     catch (e) {
