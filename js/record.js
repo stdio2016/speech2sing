@@ -15,14 +15,15 @@ var chunks = [];
 var files = {};
 var clips = document.querySelector(".sound-clips");
 var audioElt = document.querySelector("audio");
+var useMimeType = "";
+
+var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 
 btnRecord.disabled = true;
 btnStop.disabled = true;
 
 function startRecord() {
-  if (audioCtx.state === "suspended") {
-    resumeContext();
-  }
+  resumeContext();
   if (mediaRecorder.state === "recording") {
     mediaRecorder.pause();
     btnRecord.innerHTML = "Paused";
@@ -49,6 +50,7 @@ function stopRecord() {
 }
 
 function recordDataHandler(e) {
+  useMimeType = mediaRecorder.mimeType;
   chunks.push(e.data);
 }
 
@@ -64,7 +66,13 @@ function getDefaultName() {
 }
 
 function stopRecordFinally() {
-  var blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
+  var mime;
+  if (useMimeType === "audio/wav") mime = "audio/wav";
+  else if (useMimeType === "video/webm") mime = "audio/webm";
+  else {
+    mime = "audio/ogg; codecs=opus";
+  }
+  blob = new Blob(chunks, { 'type' : mime });
   var name = prompt("Enter name for this sound", getDefaultName());
   chunks = [];
   if (name) {
@@ -250,8 +258,10 @@ function startup() {
   }
 }
 
+var audioLocked = isIOS;
+
 function resumeContext() {
-  if (audioCtx) {
+  if (audioCtx && audioLocked) {
     audioCtx.resume();
     var r = audioCtx.createOscillator();
     (r.start || r.noteOn).call(r);
@@ -263,7 +273,10 @@ function resumeContext() {
     r.connect(s);
     s.connect(audioCtx.destination);
     window.removeEventListener('touchend', resumeContext);
+    audioLocked = false;
   }
 }
 
-window.addEventListener('touchend', resumeContext);
+if (audioLocked) {
+  window.addEventListener('touchend', resumeContext);
+}

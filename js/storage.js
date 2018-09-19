@@ -1,5 +1,7 @@
 var db = null;
 var inMem_db = {};
+var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
+
 window.addEventListener('load', function () {
   try {
     var dbreq = indexedDB.open("speech2sing_records");
@@ -31,6 +33,22 @@ function saveSound(name, file) {
       resolve(null);
     });
   }
+  if (isIOS) {
+    // need to convert Blob to ArrayBuffer
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      var mime = file.type;
+      fr.onload = function () {
+        var t = db.transaction("sounds", "readwrite");
+        var s = t.objectStore("sounds");
+        var req = s.put({name: name, file: fr.result, mime: mime});
+        req.onsuccess = resolve;
+        req.onerror = reject;
+      };
+      fr.onerror = reject;
+      fr.readAsArrayBuffer(file);
+    });
+  }
   var t = db.transaction("sounds", "readwrite");
   var s = t.objectStore("sounds");
   var req = s.put({name: name, file: file});
@@ -55,10 +73,13 @@ function getSound(name, file) {
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
       if (req.result && req.result.file) {
+        if (req.result.file instanceof ArrayBuffer) {
+          resolve(new Blob([req.result.file], {type: req.result.mime}));
+        }
         resolve(req.result.file);
       }
       else {
-        reject(null);
+        reject({type: 'NotFound'});
       }
     };
     req.onerror = reject;
@@ -71,7 +92,7 @@ function deleteSound(name) {
       if (name in inMem_db) {
         delete inMem_db[name];
       }
-      else reject(null);
+      else reject({type:'NotFound'});
     });
   }
   var t = db.transaction("sounds", "readwrite");
@@ -98,7 +119,7 @@ function getSoundNames() {
         resolve(req.result);
       }
       else {
-        reject(null);
+        reject({type:'Unreachable'});
       }
     };
     req.onerror = reject;
