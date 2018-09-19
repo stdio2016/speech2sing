@@ -21,7 +21,7 @@ btnStop.disabled = true;
 
 function startRecord() {
   if (audioCtx.state === "suspended") {
-    audioCtx.resume();
+    resumeContext();
   }
   if (mediaRecorder.state === "recording") {
     mediaRecorder.pause();
@@ -68,7 +68,9 @@ function stopRecordFinally() {
   var name = prompt("Enter name for this sound", getDefaultName());
   chunks = [];
   if (name) {
-    saveSound(name, blob);
+    saveSound(name, blob)['catch'](function(e) {
+      errorbox(Error(e));
+    });
     addClipInterface(name);
   }
   btnRecord.disabled = false;
@@ -198,6 +200,8 @@ function addClipInterface(name) {
       audioElt.src = audioURL;
       sessionStorage.speech2sing_prevBlobURL = audioURL;
       audioElt.play();
+    })['catch'](function (e) {
+      errorbox(Error(e));
     });
   };
   var btnDel = document.createElement("button");
@@ -227,7 +231,7 @@ function startup() {
   getSoundNames().then(function (names) {
     names.forEach(addClipInterface);
   })['catch'](function (x) {
-    console.error(x);
+    errorbox(new Error(x));
   });
   audioNode = audioCtx.createMediaElementSource(audioElt);
   audioNode.connect(audioCtx.destination);
@@ -245,3 +249,21 @@ function startup() {
     alert("Your browser does not support audio recording");
   }
 }
+
+function resumeContext() {
+  if (audioCtx) {
+    audioCtx.resume();
+    var r = audioCtx.createOscillator();
+    (r.start || r.noteOn).call(r);
+    (r.stop || r.noteOff).call(r, audioCtx.currentTime+Math.random()*0.5);
+    r.frequency.value = 880;
+    r.detune.value = Math.random()*100 - 50;
+    var s = audioCtx.createGain();
+    s.gain.value = Math.random() * 0.5;
+    r.connect(s);
+    s.connect(audioCtx.destination);
+    window.removeEventListener('touchend', resumeContext);
+  }
+}
+
+window.addEventListener('touchend', resumeContext);

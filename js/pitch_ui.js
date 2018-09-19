@@ -106,4 +106,4 @@ function resumeContext() {
 }
 
 addEventListener('click', resumeContext);
-addEventListener('touchstart', resumeContext);
+addEventListener('touchend', resumeContext);
