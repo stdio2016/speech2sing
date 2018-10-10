@@ -169,10 +169,16 @@ function showWave() {
     len = analyser.frequencyBinCount * (5000 * 2 / audioCtx.sampleRate);
   }
   else if (timeOrFreq.value == 'autocorrelation') {
-    dataArrayFloat[1].set(dataArrayFloat[0]);
-    analyser.getFloatTimeDomainData(dataArrayFloat[0]);
-    len = dataArrayFloat[0].length;
-    realTimeAutocorrelation(dataArrayFloat[1], dataArrayFloat[0], dataArray);
+    if (analyser.getFloatTimeDomainData)
+      analyser.getFloatTimeDomainData(dataArrayFloat[0]);
+    else {
+      analyser.getByteTimeDomainData(dataArray);
+      for (var i = 0; i < dataArray.length; i++) {
+        dataArrayFloat[0][i] = (dataArray[i] - 127.5) / 128;
+      }
+    }
+    realTimeAutocorrelation(dataArrayFloat[0], dataArray);
+    len = dataArray.length;
   }
   else {
     analyser.getByteTimeDomainData(dataArray);

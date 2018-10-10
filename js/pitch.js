@@ -36,17 +36,14 @@ function analyzePitch(buf, smpRate) {
 }
 
 // is this autocorrelation?
-function realTimeAutocorrelation(old, current, output) {
-  var size = old.length;
-  var total = new Float32Array(size * 8);
+function realTimeAutocorrelation(current, output) {
+  var size = current.length;
+  var total = new Float32Array(size * 4);
   for (var i = 0; i < size; i++) {
-    total[i*2] = old[i];
-  }
-  for (var i = 0; i < size; i++) {
-    total[size*2+i*2] = current[i];
+    total[i*2] = current[i];
   }
   total = stdio2017.FFT.transform(total, true);
-  for (var i = 0; i < size*4; i++) {
+  for (var i = 0; i < size*2; i++) {
     var re = total[i*2];
     var im = total[i*2+1];
     total[i*2] = re*re + im*im;
@@ -55,13 +52,16 @@ function realTimeAutocorrelation(old, current, output) {
   total = stdio2017.FFT.transform(total, false);
   var dB = 10 / Math.log(10);
   var offset = Math.log(size) * 2;
+  // normalize
+  var max = 100, min = -100;
   for (var i = 0; i < size; i++) {
     var re = total[i*2];
-    var im = total[i*2+1];
-    var amp = (Math.log(re) - offset) * dB;
-    if (amp < -70) amp = -70;
-    if (amp > 20) amp = 20;
-    if (amp !== amp) amp = -70;
-    output[i] = ((amp - (-70)) / 90) * 255;
+    if (re > max) max = re;
+    if (re < min) min = re;
+  }
+  var range = Math.max(max, -min);
+  for (var i = 0; i < size; i++) {
+    var re = total[i*2];
+    output[i] = (re + range) / (2 * range) * 255;
   }
 }
