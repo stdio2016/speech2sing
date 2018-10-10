@@ -18,6 +18,8 @@ var audioElt = document.querySelector("audio");
 var useMimeType = "";
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
+var streamForAnalyse = audioCtx.createGain();
+var streamForRecord = audioCtx.createGain();
 
 btnRecord.disabled = true;
 btnStop.disabled = true;
@@ -41,7 +43,7 @@ function startRecord() {
   }
   btnRecord.classList.add('red');
   btnStop.disabled = false;
-  visualize(audioStreamNode);
+  visualize(streamForAnalyse);
 }
 
 function stopRecord() {
@@ -96,23 +98,25 @@ function tryToGetRecorder() {
   function onSuccess(stream) {
     try {
       audioStream = stream;
+      audioStreamNode = audioCtx.createMediaStreamSource(stream);
+      audioStreamNode.connect(streamForRecord);
       if (window.MediaRecorder) {
         mediaRecorder = new MediaRecorder(audioStream);
       }
       else {
         var polyfill = audioRecorderPolyfill(audioCtx);
-        mediaRecorder = new polyfill(audioStream);
+        mediaRecorder = new polyfill(audioStream, {input: streamForRecord});
       }
       mediaRecorder.addEventListener("dataavailable", recordDataHandler);
       mediaRecorder.addEventListener("stop", stopRecordFinally);
       btnRecord.disabled = false;
       btnRecord.onclick = startRecord;
       btnStop.onclick = stopRecord;
-      audioStreamNode = audioCtx.createMediaStreamSource(stream);
       if (!window.MediaRecorder) {
         mediaRecorder.input = audioStreamNode;
       }
-      visualize(audioStreamNode);
+      audioStreamNode.connect(streamForAnalyse);
+      visualize(streamForAnalyse);
     }
     catch (e) {
       errorbox(e);
@@ -150,7 +154,7 @@ function visualize(source) {
   dataArray = new Uint8Array(bufferLength);
   dataArrayFloat = [new Float32Array(bufferLength), new Float32Array(bufferLength)];
   if (visualizedSource !== null) {
-    visualizedSource.disconnect(analyser);
+    visualizedSource.disconnect();
   }
   source.connect(analyser);
   visualizedSource = source;
@@ -241,6 +245,7 @@ function addClipInterface(name) {
 }
 
 var audioNode = null;
+var audioNodeForAnalyze = audioCtx.createGain();
 function startup() {
   getSoundNames().then(function (names) {
     names.forEach(addClipInterface);
@@ -249,12 +254,13 @@ function startup() {
   });
   audioNode = audioCtx.createMediaElementSource(audioElt);
   audioNode.connect(audioCtx.destination);
+  audioNode.connect(audioNodeForAnalyze);
   audioElt.onplay = function () {
     audioNode.source = audioElt;
-    visualize(audioNode);
+    visualize(audioNodeForAnalyze);
   };
   audioElt.onended = function () {
-    visualize(audioStreamNode);
+    visualize(streamForAnalyse);
   };
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     tryToGetRecorder();
