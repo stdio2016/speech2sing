@@ -210,6 +210,9 @@ function addClipInterface(name) {
     // move audio control to current clip
     audioElt.remove();
     clip.appendChild(audioElt);
+    // unlock audio element in Safari
+    audioElt.play();
+    resumeContext();
     getSound(name).then(function (result) {
       if (sessionStorage.speech2sing_prevBlobURL) {
         window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
