@@ -41,7 +41,8 @@ function saveSound(name, file) {
       fr.onload = function () {
         var t = db.transaction("sounds", "readwrite");
         var s = t.objectStore("sounds");
-        var req = s.put({name: name, file: fr.result, mime: mime});
+        var fakeblob = {isBlob: true, buffer: fr.result, type: mime};
+        var req = s.put({name: name, file: fakeblob});
         req.onsuccess = resolve;
         req.onerror = reject;
       };
@@ -73,8 +74,9 @@ function getSound(name, file) {
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
       if (req.result && req.result.file) {
-        if (req.result.file instanceof ArrayBuffer) {
-          resolve(new Blob([req.result.file], {type: req.result.mime}));
+        var file = req.result.file;
+        if (!(file instanceof Blob)) {
+          resolve(new Blob([file.buffer], {type: file.type}));
         }
         resolve(req.result.file);
       }
