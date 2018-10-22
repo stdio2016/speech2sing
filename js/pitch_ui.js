@@ -91,8 +91,11 @@ function saveToBrowser(file) {
   }
 }
 
+var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
+var audioLocked = isIOS;
+
 function resumeContext() {
-  if (audioCtx && audioCtx.state === "suspended") {
+  if (audioCtx && audioLocked) {
     audioCtx.resume();
     var r = audioCtx.createOscillator();
     (r.start || r.noteOn).call(r);
@@ -103,6 +106,7 @@ function resumeContext() {
     s.gain.value = Math.random() * 0.5;
     r.connect(s);
     s.connect(audioCtx.destination);
+    audioLocked = false;
   }
 }
 
