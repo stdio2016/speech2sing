@@ -52,8 +52,9 @@ function analyzeFile(file) {
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
     //snd.buffer = buf;
-    var timbreRe = new Float32Array([0.5, 0.4, 0.3, 0.2, 0.1]);
-    var timbreIm = new Float32Array([0, 0, 0, 0, 0]);
+    var timbreRe = new Float32Array(21);
+    var timbreIm = new Float32Array(21);
+    for (var i = 1; i <= 20; i++) timbreIm[i] = Math.exp((i-1) * -0.25);
     var timbre = audioCtx.createPeriodicWave(timbreRe, timbreIm);
     snd.setPeriodicWave(timbre);
     snd.connect(gain);
