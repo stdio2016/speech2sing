@@ -121,7 +121,6 @@ function analyzePitch2(buf, smpRate) {
     secs: 0,
     fftSize: fftSize,
     fftIn: new Float32Array(fftSize * 4),
-    fftOut: new Float32Array(fftSize * 4),
     candidates: [],
     pitch: [],
     resolve: null
@@ -151,8 +150,8 @@ function analyzePitch2Loop1(state) {
   showProgress("calculating pitch candidate at " + secs + "s");
   var end = Math.min((secs+1) * smpRate, buf.length);
   while (i + fftSize < end) {
-    var p = getSegmentCandidates(buf, i, smpRate);
-    state.pitch.push([i / smpRate, p, 0.1]);
+    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.fftIn);
+    state.pitch.push(p);
     i = Math.floor(i + smpRate * StepTime);
   }
   state.pos = i;
@@ -165,6 +164,37 @@ function analyzePitch2Loop1(state) {
   }
 }
 
-function getSegmentCandidates(buf, i, smpRate) {
-  return 220;
+function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
+  var vol = 0;
+  for (var i = 0; i < size; i++) {
+    var b = buf[pos+i];
+    if (b > vol) vol = b;
+    if (-b > vol) vol = -b;
+    fftIn[i*2] = b * hannWindow[i];
+    fftIn[i*2+1] = 0;
+  }
+  for (var i = size*2; i < size*4; i++) fftIn[i] = 0;
+  var fftOut = stdio2017.FFT.transform(fftIn, true);
+  for (var i = 0; i < size*2; i++) {
+    var re = fftOut[i*2];
+    var im = fftOut[i*2+1];
+    fftOut[i*2] = re*re + im*im;
+    fftOut[i*2+1] = 0;
+  }
+  var corr = stdio2017.FFT.transform(fftOut, false);
+  for (var i = 0; i < size/2; i++) {
+    fftIn[i+500] = corr[i*2];
+  }
+  for (var i = 1; i <= 500; i++) {
+    fftIn[500-i] = corr[i*2];
+  }
+  var lim = smpRate/80 | 0;
+  var high = 0, freq = 1;
+  for (var i = smpRate/800 | 0; i < lim; i++) {
+    if (fftIn[500+i] > high) {
+      high = fftIn[500+i];
+      freq = i;
+    }
+  }
+  return [pos / smpRate, smpRate / freq, vol];
 }
