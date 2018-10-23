@@ -49,10 +49,12 @@ function analyzeFile(file) {
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
-    analyzePitch(buf, audioCtx.sampleRate).then(afterAnalyze)
+    showSpectrum(buf, audioCtx.sampleRate);
+    analyzePitch2(buf, audioCtx.sampleRate).then(afterAnalyze)
     ['catch'](error);
   }
   function afterAnalyze(ans) {
+    showPitch(ans, audioCtx.sampleRate);
     //var snd = audioCtx.createBufferSource();
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
@@ -94,6 +96,50 @@ function saveToBrowser(file) {
   if (name) {
     saveSound(name, file);
   }
+}
+
+function showSpectrum(buf, smpRate) {
+  var ctx = spectrum.getContext('2d');
+  var wind = new Float32Array(fftSize * 2);
+  var h = (fftSize * 5000 / smpRate)|0;
+  var w = 300;
+  spectrum.height = h;
+  spectrum.width = w;
+  var bmp = ctx.getImageData(0, 0, w, h);
+  for (x = 0; x < w; x++) {
+    if ((x+1)*w > buf.length) break;
+    for (j = 0; j < fftSize; j++) {
+      wind[j*2] = buf[x*fftSize + j];
+    }
+    var result = stdio2017.FFT.transform(wind, true);
+    for (j = 0; j < h; j++) {
+      var re = result[j*2];
+      var im = result[j*2+1];
+      var amp = Math.sqrt(re*re + im*im);
+      bmp.data[(x + (h-j-1) * w)*4+0] = 0;
+      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 40;
+      bmp.data[(x + (h-j-1) * w)*4+2] = 0;
+      bmp.data[(x + (h-j-1) * w)*4+3] = 255;
+    }
+  }
+  ctx.putImageData(bmp, 0, 0);
+}
+
+function showPitch(ans, smpRate) {
+  var w = spectrum.width;
+  var h = spectrum.height;
+  var ctx = spectrum.getContext('2d');
+  ctx.strokeStyle = "red";
+  ctx.beginPath();
+  for (var i = 0; i < ans.length; i++) {
+    var x = Math.floor(ans[i][0] * smpRate / fftSize);
+    var y = h-1 - Math.floor(ans[i][1] / smpRate * fftSize * 2);
+    if (x < w) {
+      if (i == 0) ctx.moveTo(x,y);
+      else ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
 }
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);

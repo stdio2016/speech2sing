@@ -4,14 +4,7 @@ function analyzePitch(buf, smpRate) {
   var wind = new Float32Array(fftSize * 2);
   var amps = new Float32Array(fftSize/2);
   var ans = [];
-  var ctx = spectrum.getContext('2d');
-  var h = (fftSize * 5000 / smpRate)|0;
-  var w = 300;
-  spectrum.height = h;
-  spectrum.width = w;
-  var bmp = ctx.getImageData(0, 0, w, h);
   for (i = fftSize; i < buf.length; i += fftSize) {
-    var x = (i/fftSize)|0; // for visualization
     var j = 0;
     var vol = 0;
     for (j = 0; j < fftSize; j++) {
@@ -23,12 +16,6 @@ function analyzePitch(buf, smpRate) {
       var re = result[j*2];
       var im = result[j*2+1];
       amps[j] = Math.sqrt(re*re + im*im);
-      if (i / fftSize < w && j < h) {
-        bmp.data[(x + (h-j-1) * w)*4+0] = 0;
-        bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amps[j]) * 40;
-        bmp.data[(x + (h-j-1) * w)*4+2] = 0;
-        bmp.data[(x + (h-j-1) * w)*4+3] = 255;
-      }
     }
     var max = 0, freq = 0;
     for (j = Math.floor(fftSize/smpRate * 80); j < fftSize/smpRate * 800; j++) {
@@ -44,13 +31,7 @@ function analyzePitch(buf, smpRate) {
       }
     }
     ans.push([i/smpRate, freq * smpRate/fftSize, vol]);
-    if (x < w) {
-      bmp.data[(x + (h-freq*2-1) * w)*4+0] = 255;
-      bmp.data[(x + (h-freq*2-1) * w)*4+1] = 0;
-      bmp.data[(x + (h-freq*2-1) * w)*4+2] = 0;
-    }
   }
-  ctx.putImageData(bmp, 0, 0);
   return new Promise(function (a) {a(ans);});
 }
 
