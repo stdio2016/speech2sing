@@ -45,9 +45,14 @@ function analyzeFile(file) {
     audioCtx.decodeAudioData(fr.result, getBuffer, error);
   };
   fr.readAsArrayBuffer(file);
+  var buflen;
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
-    var ans = analyzePitch(buf, audioCtx.sampleRate);
+    buflen = buf.length;
+    analyzePitch(buf, audioCtx.sampleRate).then(afterAnalyze)
+    ['catch'](error);
+  }
+  function afterAnalyze(ans) {
     //var snd = audioCtx.createBufferSource();
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
@@ -62,11 +67,10 @@ function analyzeFile(file) {
     gain.connect(audioCtx.destination);
     (snd.start || snd.noteOn).call(snd);
     ans.forEach(function (pitch) {
-      gain.gain.linearRampToValueAtTime(Math.min(pitch[2] * 4, 0.5), audioCtx.currentTime + pitch[0]);
+      gain.gain.linearRampToValueAtTime(Math.min(pitch[2], 0.5), audioCtx.currentTime + pitch[0]);
       snd.frequency.setValueAtTime(pitch[1], audioCtx.currentTime + pitch[0]);
     });
-    console.log(buf.length);
-    var dur = buf.length / audioCtx.sampleRate;
+    var dur = buflen / audioCtx.sampleRate;
     (snd.stop || snd.noteOff).call(snd, audioCtx.currentTime + dur);
   }
   function error(x) {
@@ -77,6 +81,7 @@ function analyzeFile(file) {
       default:
         alert(x);
     }
+    console.error(x);
   }
 }
 

@@ -51,7 +51,7 @@ function analyzePitch(buf, smpRate) {
     }
   }
   ctx.putImageData(bmp, 0, 0);
-  return ans;
+  return new Promise(function (a) {a(ans);});
 }
 
 // is this autocorrelation?
@@ -102,3 +102,69 @@ function buildHannWindow() {
   }
 }
 buildHannWindow();
+
+var pitchDebug;
+function showProgress(text) {
+  if (text) {
+    txtProgress.textContent = text;
+  }
+  else {
+    txtProgress.textContent = "";
+  }
+}
+
+function analyzePitch2(buf, smpRate) {
+  var pitchState = {
+    buf: buf,
+    smpRate: smpRate,
+    pos: 0,
+    secs: 0,
+    fftSize: fftSize,
+    fftIn: new Float32Array(fftSize * 4),
+    fftOut: new Float32Array(fftSize * 4),
+    candidates: [],
+    pitch: [],
+    resolve: null
+  };
+  // get global volume
+  var vol = 0;
+  for (var i = 0; i < buf.length; i++) {
+    if (buf[i] > vol) vol = buf[i];
+    if (-buf[i] > vol) vol = -buf[i];
+  }
+  pitchState.volume = vol;
+  pitchDebug = pitchState;
+  return new Promise(function (resolve) {
+    pitchState.resolve = resolve;
+    analyzePitch2Loop1(pitchState);
+  });
+}
+
+var StepTime = 0.01;
+
+function analyzePitch2Loop1(state) {
+  var i = state.pos;
+  var smpRate = state.smpRate;
+  var secs = state.secs;
+  var fftSize = state.fftSize;
+  var buf = state.buf;
+  showProgress("calculating pitch candidate at " + secs + "s");
+  var end = Math.min((secs+1) * smpRate, buf.length);
+  while (i + fftSize < end) {
+    var p = getSegmentCandidates(buf, i, smpRate);
+    state.pitch.push([i / smpRate, p, 0.1]);
+    i = Math.floor(i + smpRate * StepTime);
+  }
+  state.pos = i;
+  state.secs++;
+  if (i + fftSize >= buf.length) {
+    state.resolve(state.pitch);
+  }
+  else {
+    setTimeout(analyzePitch2Loop1.bind(this, state), 30);
+  }
+}
+
+function getSegmentCandidates(buf, i, smpRate) {
+  return 220;
+}
