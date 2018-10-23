@@ -49,12 +49,14 @@ function analyzeFile(file) {
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
+    showProgress("drawing spectrum");
     showSpectrum(buf, audioCtx.sampleRate);
     analyzePitch2(buf, audioCtx.sampleRate).then(afterAnalyze)
     ['catch'](error);
   }
   function afterAnalyze(ans) {
     showPitch(ans, audioCtx.sampleRate);
+    showProgress("finish");
     //var snd = audioCtx.createBufferSource();
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
@@ -135,8 +137,8 @@ function showPitch(ans, smpRate) {
     var x = Math.floor(ans[i][0] * smpRate / fftSize);
     var y = h-1 - Math.floor(ans[i][1] / smpRate * fftSize * 2);
     if (x < w) {
-      if (i == 0) ctx.moveTo(x,y);
-      else ctx.lineTo(x, y);
+      ctx.moveTo(x,y);
+      ctx.lineTo(x+1,y);
     }
   }
   ctx.stroke();

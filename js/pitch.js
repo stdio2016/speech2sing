@@ -123,7 +123,9 @@ function analyzePitch2(buf, smpRate) {
 var StepTime = 0.01;
 var MinimumPitch = 70;
 var MaximumPitch = 800;
-var OctaveCost = 0.1;
+var OctaveCost = 0.01;
+var VoicingThreshold = 0.4;
+var SilenceThreshold = 0.05;
 
 function analyzePitch2Loop1(state) {
   var i = state.pos;
@@ -134,21 +136,23 @@ function analyzePitch2Loop1(state) {
   showProgress("calculating pitch candidate at " + secs + "s");
   var end = Math.min((secs+1) * smpRate, buf.length);
   while (i + fftSize < end) {
-    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.fftIn);
+    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.fftIn, state.volume);
     state.pitch.push(p);
     i = Math.floor(i + smpRate * StepTime);
   }
   state.pos = i;
   state.secs++;
   if (i + fftSize >= buf.length) {
-    state.resolve(state.pitch);
+    setTimeout(function () {
+      state.resolve(state.pitch);
+    }, 30);
   }
   else {
     setTimeout(analyzePitch2Loop1.bind(this, state), 30);
   }
 }
 
-function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
+function getSegmentCandidates(buf, pos, size, smpRate, fftIn, globalVol) {
   var vol = 0;
   // multiply with Hann window
   for (var i = 0; i < size; i++) {
@@ -176,7 +180,9 @@ function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
     fftIn[500-i] = corr[i*2] * normalize / hannAuto[i];
   }
   var lim = smpRate/MinimumPitch | 0;
-  var high = 0, freq = 1;
+  var high = VoicingThreshold + Math.max(0,
+    2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
+  var freq = 1;
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
     var r = fftIn[500+i];
     var R = r - OctaveCost * Math.log2(MinimumPitch/smpRate * i);
@@ -185,5 +191,5 @@ function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
       freq = i;
     }
   }
-  return [pos / smpRate, smpRate / freq, high * vol];
+  return [(pos+fftSize/2) / smpRate, smpRate / freq, high * vol];
 }
