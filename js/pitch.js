@@ -38,11 +38,11 @@ function analyzePitch(buf, smpRate) {
 // is this autocorrelation?
 function realTimeAutocorrelation(current, output) {
   var size = current.length;
-  var total = new Float32Array(size * 4);
+  var total = new Float32Array(size * 2);
   for (var i = 0; i < size; i++) {
-    total[i*2] = current[i] * hannWindow[i];
+    total[i] = current[i] * hannWindow[i];
   }
-  total = stdio2017.FFT.transform(total, true);
+  total = stdio2017.FFT.realFFT(total);
   for (var i = 0; i < size*2; i++) {
     var re = total[i*2];
     var im = total[i*2+1];
@@ -101,7 +101,6 @@ function analyzePitch2(buf, smpRate) {
     pos: 0,
     secs: 0,
     fftSize: fftSize,
-    fftIn: new Float32Array(fftSize * 4),
     candidates: [],
     pitch: [],
     resolve: null
@@ -136,7 +135,7 @@ function analyzePitch2Loop1(state) {
   showProgress("calculating pitch candidate at " + secs + "s");
   var end = Math.min((secs+1) * smpRate, buf.length);
   while (i + fftSize < end) {
-    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.fftIn, state.volume);
+    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.volume);
     state.pitch.push(p);
     i = Math.floor(i + smpRate * StepTime);
   }
@@ -152,18 +151,17 @@ function analyzePitch2Loop1(state) {
   }
 }
 
-function getSegmentCandidates(buf, pos, size, smpRate, fftIn, globalVol) {
+function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
   var vol = 0;
   // multiply with Hann window
+  var smp = new Float32Array(size * 2);
   for (var i = 0; i < size; i++) {
     var b = buf[pos+i];
     if (b > vol) vol = b;
     if (-b > vol) vol = -b;
-    fftIn[i*2] = b * hannWindow[i];
-    fftIn[i*2+1] = 0;
+    smp[i] = b * hannWindow[i];
   }
-  for (var i = size*2; i < size*4; i++) fftIn[i] = 0;
-  var fftOut = stdio2017.FFT.transform(fftIn, true);
+  var fftOut = stdio2017.FFT.realFFT(smp);
   for (var i = 0; i < size*2; i++) {
     var re = fftOut[i*2];
     var im = fftOut[i*2+1];
@@ -174,17 +172,17 @@ function getSegmentCandidates(buf, pos, size, smpRate, fftIn, globalVol) {
   var corr = stdio2017.FFT.transform(fftOut, false);
   var normalize = 1/corr[0];
   for (var i = 0; i < size/2; i++) {
-    fftIn[i+500] = corr[i*2] * normalize / hannAuto[i];
+    smp[i+500] = corr[i*2] * normalize / hannAuto[i];
   }
   for (var i = 1; i <= 500; i++) {
-    fftIn[500-i] = corr[i*2] * normalize / hannAuto[i];
+    smp[500-i] = corr[i*2] * normalize / hannAuto[i];
   }
   var lim = smpRate/MinimumPitch | 0;
   var high = VoicingThreshold + Math.max(0,
     2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
   var freq = 1;
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
-    var r = fftIn[500+i];
+    var r = smp[500+i];
     var R = r - OctaveCost * Math.log2(MinimumPitch/smpRate * i);
     if (R > high) {
       high = R;

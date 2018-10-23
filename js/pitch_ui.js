@@ -42,6 +42,7 @@ function analyzeFile(file) {
   }
   var fr = new FileReader();
   fr.onload = function () {
+    showProgress("decoding audio");
     audioCtx.decodeAudioData(fr.result, getBuffer, error);
   };
   fr.readAsArrayBuffer(file);
@@ -49,14 +50,13 @@ function analyzeFile(file) {
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
-    showProgress("drawing spectrum");
     showSpectrum(buf, audioCtx.sampleRate);
     analyzePitch2(buf, audioCtx.sampleRate).then(afterAnalyze)
     ['catch'](error);
   }
   function afterAnalyze(ans) {
     showPitch(ans, audioCtx.sampleRate);
-    showProgress("finish");
+    showProgress("playing pitch");
     //var snd = audioCtx.createBufferSource();
     var snd = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
@@ -76,6 +76,9 @@ function analyzeFile(file) {
     });
     var dur = buflen / audioCtx.sampleRate;
     (snd.stop || snd.noteOff).call(snd, audioCtx.currentTime + dur);
+    snd.onended = function () {
+      showProgress("finished");
+    };
   }
   function error(x) {
     switch (x.name) {
