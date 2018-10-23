@@ -121,6 +121,9 @@ function analyzePitch2(buf, smpRate) {
 }
 
 var StepTime = 0.01;
+var MinimumPitch = 70;
+var MaximumPitch = 800;
+var OctaveCost = 0.1;
 
 function analyzePitch2Loop1(state) {
   var i = state.pos;
@@ -147,6 +150,7 @@ function analyzePitch2Loop1(state) {
 
 function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
   var vol = 0;
+  // multiply with Hann window
   for (var i = 0; i < size; i++) {
     var b = buf[pos+i];
     if (b > vol) vol = b;
@@ -162,20 +166,24 @@ function getSegmentCandidates(buf, pos, size, smpRate, fftIn) {
     fftOut[i*2] = re*re + im*im;
     fftOut[i*2+1] = 0;
   }
+  // corr[i*2] is autocorrelation
   var corr = stdio2017.FFT.transform(fftOut, false);
+  var normalize = 1/corr[0];
   for (var i = 0; i < size/2; i++) {
-    fftIn[i+500] = corr[i*2];
+    fftIn[i+500] = corr[i*2] * normalize / hannAuto[i];
   }
   for (var i = 1; i <= 500; i++) {
-    fftIn[500-i] = corr[i*2];
+    fftIn[500-i] = corr[i*2] * normalize / hannAuto[i];
   }
-  var lim = smpRate/80 | 0;
+  var lim = smpRate/MinimumPitch | 0;
   var high = 0, freq = 1;
-  for (var i = smpRate/800 | 0; i < lim; i++) {
-    if (fftIn[500+i] > high) {
-      high = fftIn[500+i];
+  for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
+    var r = fftIn[500+i];
+    var R = r - OctaveCost * Math.log2(MinimumPitch/smpRate * i);
+    if (R > high) {
+      high = R;
       freq = i;
     }
   }
-  return [pos / smpRate, smpRate / freq, vol];
+  return [pos / smpRate, smpRate / freq, high * vol];
 }
