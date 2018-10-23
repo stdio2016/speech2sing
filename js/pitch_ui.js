@@ -105,7 +105,7 @@ function saveToBrowser(file) {
 
 function showSpectrum(buf, smpRate) {
   var ctx = spectrum.getContext('2d');
-  var wind = new Float32Array(fftSize * 2);
+  var wind = new Float32Array(fftSize);
   var h = (fftSize * 5000 / smpRate)|0;
   var w = 300;
   spectrum.height = h;
@@ -114,9 +114,9 @@ function showSpectrum(buf, smpRate) {
   for (x = 0; x < w; x++) {
     if ((x+1)*w > buf.length) break;
     for (j = 0; j < fftSize; j++) {
-      wind[j*2] = buf[x*fftSize + j];
+      wind[j] = buf[x*fftSize + j];
     }
-    var result = stdio2017.FFT.transform(wind, true);
+    var result = stdio2017.FFT.realFFT(wind);
     for (j = 0; j < h; j++) {
       var re = result[j*2];
       var im = result[j*2+1];
