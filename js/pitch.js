@@ -35,21 +35,28 @@ function analyzePitch(buf, smpRate) {
   return new Promise(function (a) {a(ans);});
 }
 
+var goodFft = new stdio2018.FFT(fftSize*2);
 // is this autocorrelation?
 function realTimeAutocorrelation(current, output) {
   var size = current.length;
-  var total = new Float32Array(size * 2);
+  var total = new Float64Array(size * 2);
   for (var i = 0; i < size; i++) {
     total[i] = current[i] * hannWindow[i];
   }
-  total = stdio2017.FFT.realFFT(total);
-  for (var i = 0; i < size*2; i++) {
+  goodFft.realFFT(total, total);
+  var ac = new Float64Array(size * 4);
+  for (var i = 1; i < size; i++) {
     var re = total[i*2];
     var im = total[i*2+1];
-    total[i*2] = re*re + im*im;
-    total[i*2+1] = 0;
+    ac[i*2] = re*re + im*im;
+    ac[i*2+1] = 0;
+    ac[size*4-i*2] = ac[i*2];
+    ac[size*4-i*2+1] = 0;
   }
-  total = stdio2017.FFT.transform(total, false);
+  ac[size*2] = total[1] * total[1];
+  // no dc offset
+  //ac[0] = total[0] * total[0];
+  total = goodFft.transform(ac, ac, true);
   var dB = 10 / Math.log(10);
   var offset = Math.log(size) * 2;
   // normalize
