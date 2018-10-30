@@ -54,8 +54,7 @@ function realTimeAutocorrelation(current, output) {
     ac[size*4-i*2+1] = 0;
   }
   ac[size*2] = total[1] * total[1];
-  // no dc offset
-  //ac[0] = total[0] * total[0];
+  ac[0] = total[0] * total[0];
   total = goodFft.transform(ac, ac, true);
   var dB = 10 / Math.log(10);
   var offset = Math.log(size) * 2;
@@ -168,15 +167,20 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     if (-b > vol) vol = -b;
     smp[i] = b * hannWindow[i];
   }
-  var fftOut = stdio2017.FFT.realFFT(smp);
-  for (var i = 0; i < size*2; i++) {
-    var re = fftOut[i*2];
-    var im = fftOut[i*2+1];
+  goodFft.realFFT(smp, smp);
+  var fftOut = new Float64Array(size * 4);
+  for (var i = 1; i < size; i++) {
+    var re = smp[i*2];
+    var im = smp[i*2+1];
     fftOut[i*2] = re*re + im*im;
     fftOut[i*2+1] = 0;
+    fftOut[size*4-i*2] = fftOut[i*2];
+    fftOut[size*4-i*2+1] = 0;
   }
+  fftOut[size*2] = smp[1] * smp[1];
+  //fftOut[0] = smp[0] * smp[0];
   // corr[i*2] is autocorrelation
-  var corr = stdio2017.FFT.transform(fftOut, false);
+  var corr = goodFft.transform(fftOut, fftOut, true);
   var normalize = 1/corr[0];
   for (var i = 0; i < size/2; i++) {
     smp[i+500] = corr[i*2] * normalize / hannAuto[i];
