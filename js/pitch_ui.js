@@ -62,7 +62,16 @@ function analyzeFile(file) {
       humPitch(buflen, ans);
     }
     else if (selOutput.value === "resynth") {
-      simpleSynth(bb, ans);
+      simpleSynth(bb.getChannelData(0), ans, nearestPitch);
+    }
+    else if (selOutput.value === "robotic") {
+      simpleSynth(bb.getChannelData(0), ans, function () {return 220;});
+    }
+    else if (selOutput.value === "highVoice") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p*2;});
+    }
+    else if (selOutput.value === "lowVoice") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p*0.5;});
     }
     else if (selOutput.value === "mute") {
       showProgress("finished");
@@ -78,6 +87,7 @@ function analyzeFile(file) {
         alert(x);
     }
     console.error(x);
+    throw x;
   }
 }
 
@@ -131,7 +141,7 @@ function showSpectrum(buf, smpRate) {
     for (j = 0; j < fftSize; j++) {
       wind[j] = buf[x*fftSize + j];
     }
-    var result = stdio2017.FFT.realFFT(wind);
+    var result = goodFft.realFFT(wind);
     for (j = 0; j < h; j++) {
       var re = result[j*2];
       var im = result[j*2+1];
@@ -183,33 +193,41 @@ function nearestPitch(hz) {
 }
 
 // I ask Web Audio API to do overlap and add for me! XD
-function simpleSynth(buf, pitch) {
+function simpleSynth(buf, pitch, pitchFun) {
   showProgress("playing sound in C major");
   var rate = audioCtx.sampleRate;
   var start = audioCtx.currentTime;
   var t = 0;
   var choose = 0;
+  var outbuf = audioCtx.createBuffer(1, buf.length, audioCtx.sampleRate);
+  var out = outbuf.getChannelData(0);
   for (var i = 0; i < pitch.length-1; i++) {
     var delta = 1/pitch[i][1];
     
     while (t < pitch[i+1][0]) {
-      var n = audioCtx.createBufferSource();
-      var g = audioCtx.createGain();
-      n.buffer = buf;
-      n.connect(g);
-      g.gain.setValueAtTime(0, t+start-delta);
-      g.gain.linearRampToValueAtTime(1, t+start);
-      g.gain.linearRampToValueAtTime(0, t+start+delta);
-      g.connect(audioCtx.destination);
       while (choose < t) choose += delta;
-      (n.start || n.noteOn).call(n, t+start-delta, choose);
-      (n.stop || n.noteOff).call(n, t+start+delta);
-      t += 1/nearestPitch(pitch[i][1]);
+      var from = (t-delta) * rate | 0;
+      var to = (t+delta) * rate | 0;
+      for (var j = from; j < to; j++) {
+        var w = (j - t*rate) / (delta*rate);
+        w = Math.cos(w * Math.PI) * 0.5 + 0.5;
+        var pos = choose * rate + j - from;
+        if (pos < buf.length-1) {
+          var frac = pos - Math.floor(pos);
+          var h = Math.floor(pos);
+          out[j] += w * ((1-frac) * buf[h] + frac * buf[h+1]);
+        }
+      }
+      t += 1/pitchFun(pitch[i][1]);
     }
   }
+  var n = audioCtx.createBufferSource();
+  n.connect(audioCtx.destination);
+  n.buffer = outbuf;
   n.onended = function () {
     showProgress("finished");
   };
+  n.start(start);
 }
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
