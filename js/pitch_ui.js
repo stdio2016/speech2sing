@@ -47,38 +47,27 @@ function analyzeFile(file) {
   };
   fr.readAsArrayBuffer(file);
   var buflen;
+  var bb;
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
+    bb = audioBuf;
     showSpectrum(buf, audioCtx.sampleRate);
     analyzePitch2(buf, audioCtx.sampleRate).then(afterAnalyze)
     ['catch'](error);
   }
   function afterAnalyze(ans) {
     showPitch(ans, audioCtx.sampleRate);
-    showProgress("playing pitch");
-    //var snd = audioCtx.createBufferSource();
-    var snd = audioCtx.createOscillator();
-    var gain = audioCtx.createGain();
-    //snd.buffer = buf;
-    var timbreRe = new Float32Array(21);
-    var timbreIm = new Float32Array(21);
-    for (var i = 1; i <= 20; i++) timbreIm[i] = Math.exp((i-1) * -0.25);
-    var timbre = audioCtx.createPeriodicWave(timbreRe, timbreIm);
-    snd.setPeriodicWave(timbre);
-    snd.connect(gain);
-    gain.gain.value = 0;
-    gain.connect(audioCtx.destination);
-    (snd.start || snd.noteOn).call(snd);
-    ans.forEach(function (pitch) {
-      gain.gain.linearRampToValueAtTime(Math.min(pitch[2], 0.5), audioCtx.currentTime + pitch[0]);
-      snd.frequency.setValueAtTime(pitch[1], audioCtx.currentTime + pitch[0]);
-    });
-    var dur = buflen / audioCtx.sampleRate;
-    (snd.stop || snd.noteOff).call(snd, audioCtx.currentTime + dur);
-    snd.onended = function () {
+    if (selOutput.value === "hum") {
+      humPitch(buflen, ans);
+    }
+    else if (selOutput.value === "resynth") {
+      simpleSynth(bb, ans);
+    }
+    else if (selOutput.value === "mute") {
       showProgress("finished");
-    };
+    }
+    window.bb = {buffer: bb, pitch: ans};
   }
   function error(x) {
     switch (x.name) {
@@ -90,6 +79,32 @@ function analyzeFile(file) {
     }
     console.error(x);
   }
+}
+
+function humPitch(buflen, pitchArr) {
+  showProgress("humming pitch");
+  //var snd = audioCtx.createBufferSource();
+  var snd = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  //snd.buffer = buf;
+  var timbreRe = new Float32Array(21);
+  var timbreIm = new Float32Array(21);
+  for (var i = 1; i <= 20; i++) timbreIm[i] = Math.exp((i-1) * -0.25);
+  var timbre = audioCtx.createPeriodicWave(timbreRe, timbreIm);
+  snd.setPeriodicWave(timbre);
+  snd.connect(gain);
+  gain.gain.value = 0;
+  gain.connect(audioCtx.destination);
+  (snd.start || snd.noteOn).call(snd);
+  pitchArr.forEach(function (pitch) {
+    gain.gain.linearRampToValueAtTime(Math.min(pitch[2], 0.5), audioCtx.currentTime + pitch[0]);
+    snd.frequency.setValueAtTime(pitch[1], audioCtx.currentTime + pitch[0]);
+  });
+  var dur = buflen / audioCtx.sampleRate;
+  (snd.stop || snd.noteOff).call(snd, audioCtx.currentTime + dur);
+  snd.onended = function () {
+    showProgress("finished");
+  };
 }
 
 function saveToBrowser(file) {
@@ -112,7 +127,7 @@ function showSpectrum(buf, smpRate) {
   spectrum.width = w;
   var bmp = ctx.getImageData(0, 0, w, h);
   for (x = 0; x < w; x++) {
-    if ((x+1)*w > buf.length) break;
+    if ((x+1)*fftSize > buf.length) break;
     for (j = 0; j < fftSize; j++) {
       wind[j] = buf[x*fftSize + j];
     }
@@ -145,6 +160,56 @@ function showPitch(ans, smpRate) {
     }
   }
   ctx.stroke();
+}
+
+// currently only supports C major
+function nearestPitch(hz) {
+  if (hz > 1000 || hz < 10) return 220; // lying
+  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
+  var arr = [0, 2, 4, 5, 7, 9, 11];
+  var octave = Math.round(n / 12);
+  var dist = 999;
+  var best = n;
+  for (var o = octave-1; o <= octave+1; o++) {
+    for (var p = 0; p < arr.length; p++) {
+      var r = arr[p] + o*12;
+      if (Math.abs(r-n) < dist) {
+        dist = Math.abs(r-n);
+        best = r;
+      }
+    }
+  }
+  return 440 * Math.pow(2, (best-9) / 12);
+}
+
+// I ask Web Audio API to do overlap and add for me! XD
+function simpleSynth(buf, pitch) {
+  showProgress("playing sound in C major");
+  var rate = audioCtx.sampleRate;
+  var start = audioCtx.currentTime;
+  var t = 0;
+  var choose = 0;
+  for (var i = 0; i < pitch.length-1; i++) {
+    var delta = 1/pitch[i][1];
+    
+    while (t < pitch[i+1][0]) {
+      var n = audioCtx.createBufferSource();
+      var g = audioCtx.createGain();
+      n.buffer = buf;
+      n.connect(g);
+      g.gain.setValueAtTime(0, t+start-delta);
+      g.gain.linearRampToValueAtTime(1, t+start);
+      g.gain.linearRampToValueAtTime(0, t+start+delta);
+      g.connect(audioCtx.destination);
+      while (choose < t) choose += delta;
+      (n.start || n.noteOn).call(n, t+start-delta, choose);
+      (n.stop || n.noteOff).call(n, t+start+delta);
+      t += 1/nearestPitch(pitch[i][1]);
+    }
+  }
+  n.onended = function () {
+    showProgress("finished");
+  };
 }
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);

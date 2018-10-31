@@ -24,6 +24,14 @@
 <p><input type="file" id="fileSound">
 <button onclick="analyzeFile(fileSound.files[0])">Analyze</button>
 <button onclick="saveToBrowser(fileSound.files[0])">Save to browser</button></p>
+<p>
+  Output option:
+  <select id="selOutput">
+    <option value="hum">Hum pitch</option>
+    <option value="resynth">Correct pitch</option>
+    <option value="mute">Mute</option>
+  </select>
+</p>
 <p id="txtProgress"></p>
 <p><canvas id='spectrum' style="height:100%;width:100%;max-width:500px;"></canvas></p>
 <script src="js/pitch_ui.js"></script>
