@@ -63,15 +63,19 @@ function analyzeFile(file) {
     }
     else if (selOutput.value === "resynth") {
       simpleSynth(bb.getChannelData(0), ans, nearestPitch);
+      showProgress("playing sound in C major");
     }
     else if (selOutput.value === "robotic") {
       simpleSynth(bb.getChannelData(0), ans, function () {return 220;});
+      showProgress("playing robotic voice");
     }
     else if (selOutput.value === "highVoice") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p*2;});
+      showProgress("playing sound one octave higher");
     }
     else if (selOutput.value === "lowVoice") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p*0.5;});
+      showProgress("playing sound one octave lower");
     }
     else if (selOutput.value === "mute") {
       showProgress("finished");
@@ -194,7 +198,6 @@ function nearestPitch(hz) {
 
 // I ask Web Audio API to do overlap and add for me! XD
 function simpleSynth(buf, pitch, pitchFun) {
-  showProgress("playing sound in C major");
   var rate = audioCtx.sampleRate;
   var start = audioCtx.currentTime;
   var t = 0;
