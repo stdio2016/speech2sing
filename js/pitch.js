@@ -161,11 +161,17 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
   var vol = 0;
   // multiply with Hann window
   var smp = new Float32Array(size * 2);
+  var sum = 0;
   for (var i = 0; i < size; i++) {
     var b = buf[pos+i];
     if (b > vol) vol = b;
     if (-b > vol) vol = -b;
     smp[i] = b * hannWindow[i];
+    sum += smp[i];
+  }
+  sum /= size;
+  for (var i = 0; i < size; i++) {
+    smp[i] -= sum;
   }
   goodFft.realFFT(smp, smp);
   var fftOut = new Float64Array(size * 4);
@@ -178,7 +184,7 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     fftOut[size*4-i*2+1] = 0;
   }
   fftOut[size*2] = smp[1] * smp[1];
-  //fftOut[0] = smp[0] * smp[0];
+  fftOut[0] = smp[0] * smp[0];
   // corr[i*2] is autocorrelation
   var corr = goodFft.transform(fftOut, fftOut, true);
   var normalize = 1/corr[0];
@@ -193,11 +199,16 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
   var freq = 1;
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
+    if (smp[499+i] > smp[500+i] || smp[500+i] < smp[501+i]) continue;
+    var r0 = smp[499+i];
     var r = smp[500+i];
-    var R = r - OctaveCost * Math.log2(MinimumPitch/smpRate * i);
+    var r1 = smp[501+i];
+    var peak = r + (r0-r1) * (r0-r1) * 0.125 / (2*r - r0 - r1); 
+    var delta =  i + (r0 - r1) * 0.5 / (r0 + r1 - 2 * r);
+    var R = peak - OctaveCost * Math.log2(MinimumPitch/smpRate * delta);
     if (R > high) {
       high = R;
-      freq = i;
+      freq = delta;
     }
   }
   return [(pos+fftSize/2) / smpRate, smpRate / freq, high * vol];

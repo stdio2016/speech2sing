@@ -66,7 +66,7 @@ function analyzeFile(file) {
       showProgress("playing sound in C major");
     }
     else if (selOutput.value === "robotic") {
-      simpleSynth(bb.getChannelData(0), ans, function () {return 220;});
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p > 1000 ? p : 220;});
       showProgress("playing robotic voice");
     }
     else if (selOutput.value === "highVoice") {
@@ -178,7 +178,6 @@ function showPitch(ans, smpRate) {
 
 // currently only supports C major
 function nearestPitch(hz) {
-  if (hz > 1000 || hz < 10) return 220; // lying
   var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
   var arr = [0, 2, 4, 5, 7, 9, 11];
   var octave = Math.round(n / 12);
