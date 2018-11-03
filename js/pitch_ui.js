@@ -80,6 +80,14 @@ function analyzeFile(file) {
     else if (selOutput.value === "mute") {
       showProgress("finished");
     }
+    else if (selOutput.value === "girl") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p*1.5;}, 1.2);
+      showProgress("change to female voice");
+    }
+    else if (selOutput.value === "boy") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p/1.5;}, 1/1.2);
+      showProgress("change to male voice");
+    }
     window.bb = {buffer: bb, pitch: ans};
   }
   function error(x) {
@@ -178,6 +186,7 @@ function showPitch(ans, smpRate) {
 
 // currently only supports C major
 function nearestPitch(hz) {
+  if (hz > 4000) return hz;
   var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
   var arr = [0, 2, 4, 5, 7, 9, 11];
   var octave = Math.round(n / 12);
@@ -196,7 +205,8 @@ function nearestPitch(hz) {
 }
 
 // I ask Web Audio API to do overlap and add for me! XD
-function simpleSynth(buf, pitch, pitchFun) {
+function simpleSynth(buf, pitch, pitchFun, formantShift) {
+  formantShift = formantShift || 1.0;
   var rate = audioCtx.sampleRate;
   var start = audioCtx.currentTime;
   var t = 0;
@@ -213,14 +223,20 @@ function simpleSynth(buf, pitch, pitchFun) {
       for (var j = from; j < to; j++) {
         var w = (j - t*rate) / (delta*rate);
         w = Math.cos(w * Math.PI) * 0.5 + 0.5;
-        var pos = choose * rate + j - from;
+        var pos = choose * rate + (j - from) * formantShift;
         if (pos < buf.length-1) {
           var frac = pos - Math.floor(pos);
           var h = Math.floor(pos);
           out[j] += w * ((1-frac) * buf[h] + frac * buf[h+1]);
         }
       }
-      t += 1/pitchFun(pitch[i][1]);
+      if (pitch[i][1] < 10000) {
+        t += 1/pitchFun(pitch[i][1]);
+      }
+      else {
+        // unvoiced
+        t += delta;
+      }
     }
   }
   var n = audioCtx.createBufferSource();
