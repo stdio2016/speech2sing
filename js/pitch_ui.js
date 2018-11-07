@@ -214,7 +214,7 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
   var outbuf = audioCtx.createBuffer(1, buf.length, audioCtx.sampleRate);
   var out = outbuf.getChannelData(0);
   for (var i = 0; i < pitch.length-1; i++) {
-    var delta = 1/pitch[i][1];
+    var delta = pitch[i][1] ? 1/pitch[i][1] : Math.random() * 0.004 + 0.008;
     
     while (t < pitch[i+1][0]) {
       while (choose < t) choose += delta;
@@ -230,7 +230,7 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
           out[j] += w * ((1-frac) * buf[h] + frac * buf[h+1]);
         }
       }
-      if (pitch[i][1] < 10000) {
+      if (pitch[i][1] > 1) {
         t += 1/pitchFun(pitch[i][1]);
       }
       else {

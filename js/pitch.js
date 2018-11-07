@@ -131,6 +131,8 @@ var MaximumPitch = 800;
 var OctaveCost = 0.01;
 var VoicingThreshold = 0.4;
 var SilenceThreshold = 0.05;
+var VoicedUnvoicedCost = 0.2;
+var OctaveJumpCost = 0.2;
 
 function analyzePitch2Loop1(state) {
   var i = state.pos;
@@ -142,12 +144,13 @@ function analyzePitch2Loop1(state) {
   var end = Math.min((secs+1) * smpRate, buf.length);
   while (i + fftSize < end) {
     var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.volume);
-    state.pitch.push(p);
+    state.candidates.push(p);
     i = Math.floor(i + smpRate * StepTime);
   }
   state.pos = i;
   state.secs++;
   if (i + fftSize >= buf.length) {
+    viterbiDecidePitch(state);
     setTimeout(function () {
       state.resolve(state.pitch);
     }, 30);
@@ -195,9 +198,12 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     smp[500-i] = corr[i*2] * normalize / hannAuto[i];
   }
   var lim = smpRate/MinimumPitch | 0;
-  var high = VoicingThreshold + Math.max(0,
+  var silenceR = VoicingThreshold + Math.max(0,
     2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
-  var freq = 1;
+  var candidates = [{frequency: 0, strength: silenceR}];
+  for (var i = 0; i < 3; i++) {
+    candidates.push({frequency: 0, strength: silenceR});
+  }
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
     if (smp[499+i] > smp[500+i] || smp[500+i] < smp[501+i]) continue;
     var r0 = smp[499+i];
@@ -206,10 +212,77 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     var peak = r + (r0-r1) * (r0-r1) * 0.125 / (2*r - r0 - r1); 
     var delta =  i + (r0 - r1) * 0.5 / (r0 + r1 - 2 * r);
     var R = peak - OctaveCost * Math.log2(MinimumPitch/smpRate * delta);
-    if (R > high) {
-      high = R;
-      freq = delta;
+    var nn = 3;
+    while (nn >= 0 && R > candidates[nn].strength) {
+      if (nn < 3) candidates[nn+1] = candidates[nn];
+      nn--;
+    }
+    if (nn < 3) {
+      candidates[nn+1] = {frequency: smpRate/delta, strength: R};
     }
   }
-  return [(pos+fftSize/2) / smpRate, smpRate / freq, high * vol];
+  return [(pos+fftSize/2) / smpRate, vol, candidates];
+}
+
+function viterbiDecidePitch(state) {
+  var candidates = state.candidates;
+  var cost = new Float64Array(candidates.length * 4);
+  var back = new Int32Array(candidates.length * 4);
+  for (var i = 0; i < 4; i++) {
+    cost[i] = -candidates[0][2][i].strength;
+  }
+  for (var t = 1; t < candidates.length; t++) {
+    for (var i = 0; i < 4; i++) {
+      var next = candidates[t][2][i];
+      var best = 999;
+      var which = 0;
+      for (var j = 0; j < 4; j++) {
+        var prev = candidates[t-1][2][j];
+        var newCost = cost[(t-1)*4 + j] - next.strength;
+        if (prev.frequency === 0 && next.frequency === 0) {
+          // unvoiced
+          newCost += 0;
+        }
+        else if (prev.frequency !== 0 && next.frequency !== 0) {
+          // voiced
+          newCost += OctaveJumpCost * Math.abs(Math.log2(next.frequency / prev.frequency));
+        }
+        else {
+          // voice -> unvoice trnsition
+          newCost += VoicedUnvoicedCost;
+        }
+        
+        if (j === 0 || newCost < best) {
+          best = newCost;
+          which = j;
+        }
+      }
+      cost[t*4+i] = best;
+      back[t*4+i] = which;
+    }
+  }
+  
+  // backtrack
+  state.pitch = [];
+  var Q = 0;
+  var best = 999;
+  for (var i = 0; i < 4; i++) {
+    if (i === 0 || cost[(candidates.length-1)*4+i] < best) {
+      best = cost[(candidates.length-1)*4+i];
+      Q = i;
+    }
+  }
+  for (var t = candidates.length-1; t > 0; t--) {
+    var choose = candidates[t][2][Q];
+    var ans = [candidates[t][0], choose.frequency, candidates[t][1]];
+    state.pitch.push(ans);
+    Q = back[t*4+Q];
+  }
+  // last step
+  {
+    var choose = candidates[0][2][Q];
+    var ans = [candidates[0][0], choose.frequency, candidates[0][1]];
+    state.pitch.push(ans);
+  }
+  state.pitch.reverse();
 }
