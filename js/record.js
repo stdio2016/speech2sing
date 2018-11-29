@@ -6,7 +6,9 @@ var audioStream;
 var mediaRecorder;
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var canvasCtx = canvas.getContext('2d');
-var analyser = audioCtx.createAnalyser();
+var analyserRecord = audioCtx.createAnalyser();
+var analyserPlay = audioCtx.createAnalyser();
+var analyser = analyserRecord;
 var audioStreamNode = null;
 var dataArray;
 var dataArrayFloat;
@@ -18,7 +20,6 @@ var audioElt = document.querySelector("audio");
 var useMimeType = "";
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
-var streamForAnalyse = audioCtx.createGain();
 var streamForRecord = audioCtx.createGain();
 
 btnRecord.disabled = true;
@@ -43,7 +44,7 @@ function startRecord() {
   }
   btnRecord.classList.add('red');
   btnStop.disabled = false;
-  visualize(streamForAnalyse);
+  visualize(analyserRecord);
 }
 
 function stopRecord() {
@@ -99,8 +100,9 @@ function tryToGetRecorder() {
     try {
       audioStream = stream;
       audioStreamNode = audioCtx.createMediaStreamSource(stream);
+      audioStreamNode.connect(analyserRecord);
       audioStreamNode.connect(streamForRecord);
-      if (window.MediaRecorder) {
+      if (window.MediaRecorder && !/polyfilltest/.test(location.hash)) {
         mediaRecorder = new MediaRecorder(audioStream);
       }
       else {
@@ -115,8 +117,7 @@ function tryToGetRecorder() {
       if (!window.MediaRecorder) {
         mediaRecorder.input = audioStreamNode;
       }
-      audioStreamNode.connect(streamForAnalyse);
-      visualize(streamForAnalyse);
+      visualize(analyserRecord);
     }
     catch (e) {
       errorbox(e);
@@ -143,7 +144,6 @@ function tryToGetRecorder() {
 };
 
 var visualizeCallbackId = 0;
-var visualizedSource = null;
 function visualize(source) {
   if (source == null) {
     return ;
@@ -153,11 +153,7 @@ function visualize(source) {
   var bufferLength = analyser.fftSize;
   dataArray = new Uint8Array(bufferLength);
   dataArrayFloat = [new Float32Array(bufferLength), new Float32Array(bufferLength)];
-  if (visualizedSource !== null) {
-    visualizedSource.disconnect();
-  }
-  source.connect(analyser);
-  visualizedSource = source;
+  analyser = source;
   showWave();
 }
 
@@ -254,7 +250,6 @@ function addClipInterface(name) {
 }
 
 var audioNode = null;
-var audioNodeForAnalyze = audioCtx.createGain();
 function startup() {
   getSoundNames().then(function (names) {
     names.forEach(addClipInterface);
@@ -263,13 +258,13 @@ function startup() {
   });
   audioNode = audioCtx.createMediaElementSource(audioElt);
   audioNode.connect(audioCtx.destination);
-  audioNode.connect(audioNodeForAnalyze);
+  audioNode.connect(analyserPlay);
   audioElt.onplay = function () {
     audioNode.source = audioElt;
-    visualize(audioNodeForAnalyze);
+    visualize(analyserPlay);
   };
   audioElt.onended = function () {
-    visualize(streamForAnalyse);
+    visualize(analyserRecord);
   };
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     tryToGetRecorder();
