@@ -129,12 +129,14 @@ function analyzePitch2(buf, smpRate) {
 var StepTime = 0.01;
 var MinimumPitch = 70;
 var MaximumPitch = 800;
+// parameter from Praat source code
+// https://github.com/praat/praat/blob/master/fon/Sound_to_Pitch.cpp#L566
 var OctaveCost = 0.01;
-var VoicingThreshold = 0.4;
-var SilenceThreshold = 0.05;
-var VoicedUnvoicedCost = 0.2;
-var OctaveJumpCost = 0.2;
-var MaxCandidates = 3;
+var VoicingThreshold = 0.45;
+var SilenceThreshold = 0.03;
+var VoicedUnvoicedCost = 0.14;
+var OctaveJumpCost = 0.35;
+var MaxCandidates = 15;
 
 function analyzePitch2Loop1(state) {
   var i = state.pos;
