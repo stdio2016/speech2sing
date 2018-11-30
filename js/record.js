@@ -18,6 +18,7 @@ var files = {};
 var clips = document.querySelector(".sound-clips");
 var audioElt = document.querySelector("audio");
 var useMimeType = "";
+var hasAnySound = false;
 
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 var streamForRecord = audioCtx.createGain();
@@ -160,6 +161,13 @@ function visualize(source) {
 function showWave() {
   visualizeCallbackId = requestAnimationFrame(showWave);
   var len;
+  if (!hasAnySound) {
+    analyserRecord.getByteTimeDomainData(dataArray);
+    len = dataArray.length;
+    for (var i = 0; i < len; i++) {
+      if (dataArray[i] !== 128) hasAnySound = true;
+    }
+  }
   if (timeOrFreq.value == 'freq') {
     analyser.getByteFrequencyData(dataArray);
     len = analyser.frequencyBinCount * (5000 * 2 / audioCtx.sampleRate);
@@ -181,11 +189,18 @@ function showWave() {
     len = dataArray.length;
   }
 
+  canvas.width = canvas.clientWidth;
   var width = canvas.width;
   var sliceWidth = width / len;
   var height = canvas.height;
-  canvasCtx.fillStyle = "black";
-  canvasCtx.fillRect(0, 0, width, height);
+  
+  if (analyser == analyserRecord && !hasAnySound) {
+    canvasCtx.font = height/3 + "px aries";
+    canvasCtx.fillStyle = "red";
+    var msg = 'Warning! No sound';
+    canvasCtx.fillText(msg, height/2, height * (1/2 + 1/6*0.6));
+    return;
+  }
 
   canvasCtx.strokeStyle = "rgb(0, 255, 0)";
   canvasCtx.beginPath();
