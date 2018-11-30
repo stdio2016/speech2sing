@@ -43,19 +43,16 @@ function realTimeAutocorrelation(current, output) {
   for (var i = 0; i < size; i++) {
     total[i] = current[i] * hannWindow[i];
   }
-  goodFft.realFFT(total, total);
-  var ac = new Float64Array(size * 4);
+  ac = goodFft.realFFT(total, total);
   for (var i = 1; i < size; i++) {
     var re = total[i*2];
     var im = total[i*2+1];
     ac[i*2] = re*re + im*im;
     ac[i*2+1] = 0;
-    ac[size*4-i*2] = ac[i*2];
-    ac[size*4-i*2+1] = 0;
   }
-  ac[size*2] = total[1] * total[1];
+  ac[1] = total[1] * total[1];
   ac[0] = total[0] * total[0];
-  total = goodFft.transform(ac, ac, true);
+  total = goodFft.realIFFT(ac, ac);
   var dB = 10 / Math.log(10);
   var offset = Math.log(size) * 2;
   // normalize
