@@ -78,7 +78,7 @@ function analyzeFile(file) {
       showProgress("playing sound one octave lower");
     }
     else if (selOutput.value === "mute") {
-      showProgress("finished");
+      showProgress("finished, took " + ans.elapsedTime + "ms");
     }
     else if (selOutput.value === "girl") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p*1.5;}, 1.2);

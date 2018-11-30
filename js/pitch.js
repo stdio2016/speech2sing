@@ -109,7 +109,8 @@ function analyzePitch2(buf, smpRate) {
     fftSize: fftSize,
     candidates: [],
     pitch: [],
-    resolve: null
+    resolve: null,
+    startTime: new Date() // for performance measure
   };
   // get global volume
   var vol = 0;
@@ -133,6 +134,7 @@ var VoicingThreshold = 0.4;
 var SilenceThreshold = 0.05;
 var VoicedUnvoicedCost = 0.2;
 var OctaveJumpCost = 0.2;
+var MaxCandidates = 3;
 
 function analyzePitch2Loop1(state) {
   var i = state.pos;
@@ -152,6 +154,7 @@ function analyzePitch2Loop1(state) {
   if (i + fftSize >= buf.length) {
     viterbiDecidePitch(state);
     setTimeout(function () {
+      state.pitch.elapsedTime = new Date() - state.startTime;
       state.resolve(state.pitch);
     }, 30);
   }
@@ -177,31 +180,28 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     smp[i] -= sum;
   }
   goodFft.realFFT(smp, smp);
-  var fftOut = new Float64Array(size * 4);
   for (var i = 1; i < size; i++) {
     var re = smp[i*2];
     var im = smp[i*2+1];
-    fftOut[i*2] = re*re + im*im;
-    fftOut[i*2+1] = 0;
-    fftOut[size*4-i*2] = fftOut[i*2];
-    fftOut[size*4-i*2+1] = 0;
+    smp[i*2] = re*re + im*im;
+    smp[i*2+1] = 0;
   }
-  fftOut[size*2] = smp[1] * smp[1];
-  fftOut[0] = smp[0] * smp[0];
+  smp[1] = smp[1] * smp[1];
+  smp[0] = smp[0] * smp[0];
   // corr[i*2] is autocorrelation
-  var corr = goodFft.transform(fftOut, fftOut, true);
+  var corr = goodFft.realIFFT(smp, null);
   var normalize = 1/corr[0];
   for (var i = 0; i < size/2; i++) {
-    smp[i+500] = corr[i*2] * normalize / hannAuto[i];
+    smp[i+500] = corr[i] * normalize / hannAuto[i];
   }
   for (var i = 1; i <= 500; i++) {
-    smp[500-i] = corr[i*2] * normalize / hannAuto[i];
+    smp[500-i] = corr[i] * normalize / hannAuto[i];
   }
   var lim = smpRate/MinimumPitch | 0;
   var silenceR = VoicingThreshold + Math.max(0,
     2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
   var candidates = [{frequency: 0, strength: silenceR}];
-  for (var i = 0; i < 3; i++) {
+  for (var i = 0; i < MaxCandidates; i++) {
     candidates.push({frequency: 0, strength: silenceR});
   }
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
@@ -212,12 +212,12 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     var peak = r + (r0-r1) * (r0-r1) * 0.125 / (2*r - r0 - r1); 
     var delta =  i + (r0 - r1) * 0.5 / (r0 + r1 - 2 * r);
     var R = peak - OctaveCost * Math.log2(MinimumPitch/smpRate * delta);
-    var nn = 3;
+    var nn = MaxCandidates;
     while (nn >= 0 && R > candidates[nn].strength) {
-      if (nn < 3) candidates[nn+1] = candidates[nn];
+      if (nn < MaxCandidates) candidates[nn+1] = candidates[nn];
       nn--;
     }
-    if (nn < 3) {
+    if (nn < MaxCandidates) {
       candidates[nn+1] = {frequency: smpRate/delta, strength: R};
     }
   }
@@ -226,19 +226,19 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
 
 function viterbiDecidePitch(state) {
   var candidates = state.candidates;
-  var cost = new Float64Array(candidates.length * 4);
-  var back = new Int32Array(candidates.length * 4);
-  for (var i = 0; i < 4; i++) {
+  var cost = new Float64Array(candidates.length * (MaxCandidates + 1));
+  var back = new Int32Array(candidates.length * (MaxCandidates + 1));
+  for (var i = 0; i <= MaxCandidates; i++) {
     cost[i] = -candidates[0][2][i].strength;
   }
   for (var t = 1; t < candidates.length; t++) {
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i <= MaxCandidates; i++) {
       var next = candidates[t][2][i];
       var best = 999;
       var which = 0;
-      for (var j = 0; j < 4; j++) {
+      for (var j = 0; j <= MaxCandidates; j++) {
         var prev = candidates[t-1][2][j];
-        var newCost = cost[(t-1)*4 + j] - next.strength;
+        var newCost = cost[(t-1)*(MaxCandidates+1) + j] - next.strength;
         if (prev.frequency === 0 && next.frequency === 0) {
           // unvoiced
           newCost += 0;
@@ -257,8 +257,8 @@ function viterbiDecidePitch(state) {
           which = j;
         }
       }
-      cost[t*4+i] = best;
-      back[t*4+i] = which;
+      cost[t*(MaxCandidates+1)+i] = best;
+      back[t*(MaxCandidates+1)+i] = which;
     }
   }
   
@@ -266,9 +266,9 @@ function viterbiDecidePitch(state) {
   state.pitch = [];
   var Q = 0;
   var best = 999;
-  for (var i = 0; i < 4; i++) {
-    if (i === 0 || cost[(candidates.length-1)*4+i] < best) {
-      best = cost[(candidates.length-1)*4+i];
+  for (var i = 0; i <= MaxCandidates; i++) {
+    if (i === 0 || cost[(candidates.length-1)*(MaxCandidates+1)+i] < best) {
+      best = cost[(candidates.length-1)*(MaxCandidates+1)+i];
       Q = i;
     }
   }
@@ -276,7 +276,7 @@ function viterbiDecidePitch(state) {
     var choose = candidates[t][2][Q];
     var ans = [candidates[t][0], choose.frequency, candidates[t][1]];
     state.pitch.push(ans);
-    Q = back[t*4+Q];
+    Q = back[t*(MaxCandidates+1)+Q];
   }
   // last step
   {
