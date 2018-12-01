@@ -58,9 +58,9 @@ function realTimeAutocorrelation(current, output) {
   // normalize
   var max = total[0], min = -total[0];
   for (var i = 0; i < size; i++) {
-    var re = total[i*2];
+    var re = total[i];
     re /= hannAuto[i];
-    total[i*2] = re;
+    total[i] = re;
     if (i*2 < size) {
       if (re > max) max = re;
       if (re < min) min = re;
@@ -68,7 +68,7 @@ function realTimeAutocorrelation(current, output) {
   }
   var range = Math.max(max, -min);
   for (var i = 0; i < size; i++) {
-    var re = total[i*2];
+    var re = total[i];
     var out = (re + range) / (2 * range) * 255;
     output[i] = Math.min(Math.max(out, 0), 255);
   }
