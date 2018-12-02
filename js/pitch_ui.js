@@ -159,7 +159,7 @@ function showSpectrum(buf, smpRate) {
       var im = result[j*2+1];
       var amp = Math.sqrt(re*re + im*im);
       bmp.data[(x + (h-j-1) * w)*4+0] = 0;
-      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 40;
+      bmp.data[(x + (h-j-1) * w)*4+1] = Math.pow(amp, 0.67) * 10;
       bmp.data[(x + (h-j-1) * w)*4+2] = 0;
       bmp.data[(x + (h-j-1) * w)*4+3] = 255;
     }
