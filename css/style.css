@@ -56,7 +56,8 @@ button:disabled {
 
 .sound-clips p {
   margin: 0;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .sound-clips .clip {
