@@ -4,11 +4,15 @@ var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 
 window.addEventListener('load', function () {
   try {
-    var dbreq = indexedDB.open("speech2sing_records");
+    var dbreq = indexedDB.open("speech2sing_records",2);
     dbreq.onupgradeneeded = function (event) {
       db = dbreq.result;
+      var tran = dbreq.transaction;
       if (event.oldVersion < 1) {
         var store = db.createObjectStore("sounds", {keyPath: "name"});
+      }
+      if (event.oldVersion < 2) {
+        addDateField(tran);
       }
     };
     dbreq.onsuccess = function (event) {
@@ -25,6 +29,26 @@ window.addEventListener('load', function () {
     alert(w);
   }
 });
+
+function addDateField(transaction) {
+  var req = transaction.objectStore("sounds").openCursor();
+  req.onsuccess = function (e) {
+    var cur = req.result;
+    if (cur) {
+      var data = cur.value;
+      var regex = /(\d{4})[-/](0?[1-9]|1[0-2])[-/]([0-2]?\d|30|31) ([01]?\d|2[0-3])[-:]([0-5]\d)(?:[-:]([0-5]\d))?/;
+      var d = data.name.match(regex);
+      if (d) {
+        console.log(d);
+        if (!d[6]) d[6] = 0;
+        data.date = new Date(+d[1], d[2]-1, +d[3], +d[4], +d[5], +d[6]);
+        console.log(data.date);
+        cur.update(data);
+      }
+      cur["continue"]();
+    }
+  };
+}
 
 function saveSound(name, file) {
   if (!db) {
@@ -52,7 +76,7 @@ function saveSound(name, file) {
   }
   var t = db.transaction("sounds", "readwrite");
   var s = t.objectStore("sounds");
-  var req = s.put({name: name, file: file});
+  var req = s.put({name: name, file: file, date: new Date()});
   return new Promise(function (resolve, reject) {
     req.onsuccess = resolve;
     req.onerror = reject;
@@ -73,12 +97,13 @@ function getSound(name, file) {
   var req = s['get'](name);
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
-      if (req.result && req.result.file) {
-        var file = req.result.file;
+      var result = req.result;
+      if (result && result.file) {
+        var file = result.file;
         if (!(file instanceof Blob)) {
-          resolve(new Blob([file.buffer], {type: file.type}));
+          result.file = new Blob([file.buffer], {type: file.type});
         }
-        resolve(req.result.file);
+        resolve(result);
       }
       else {
         reject({type: 'NotFound'});

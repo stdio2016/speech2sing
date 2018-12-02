@@ -26,8 +26,8 @@ function analyzeClip() {
   var name = clips.value;
   if (name.substr(0,2) === "r_") {
     name = name.substr(2);
-    getSound(name).then(function (file) {
-      analyzeFile(file);
+    getSound(name).then(function (rec) {
+      analyzeFile(rec.file);
     }).catch(function () {
       console.error("Clip \""+name+"\" not found");
     });

@@ -234,7 +234,7 @@ function addClipInterface(name) {
       if (sessionStorage.speech2sing_prevBlobURL) {
         window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
       }
-      var audioURL = window.URL.createObjectURL(result);
+      var audioURL = window.URL.createObjectURL(result.file);
       audioElt.src = audioURL;
       sessionStorage.speech2sing_prevBlobURL = audioURL;
       audioElt.play();

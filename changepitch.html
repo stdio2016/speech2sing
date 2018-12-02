@@ -30,7 +30,7 @@ function addClipInterface(name) {
       fr.onload = function () {
         audioCtx.decodeAudioData(fr.result, getBuffer, error);
       };
-      fr.readAsArrayBuffer(file);
+      fr.readAsArrayBuffer(file.file);
       function getBuffer(buf) {
         var snd = audioCtx.createBufferSource();
         snd.buffer = buf;
