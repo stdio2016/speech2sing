@@ -245,7 +245,7 @@ function addClipInterface(nameAndDate) {
       sessionStorage.speech2sing_prevBlobURL = audioURL;
       audioElt.play();
     })['catch'](function (e) {
-      errorbox(Error(e));
+      errorbox(Error(e.target.error));
     });
   };
   var btnDel = document.createElement("button");

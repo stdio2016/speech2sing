@@ -122,7 +122,7 @@ function getSound(name, file) {
         resolve(result);
       }
       else {
-        reject({type: 'NotFound'});
+        reject({target:{error:'File "' + name + '" Not Found'}});
       }
     };
     req.onerror = reject;
@@ -135,7 +135,7 @@ function deleteSound(name) {
       if (name in inMem_db) {
         delete inMem_db[name];
       }
-      else reject({type:'NotFound'});
+      else reject({target:{error:'File "' + name + '" Not Found'}});
     });
   }
   var t = db.transaction(["sounds", "soundNames"], "readwrite");

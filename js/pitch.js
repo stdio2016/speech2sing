@@ -117,9 +117,10 @@ function analyzePitch2(buf, smpRate) {
   }
   pitchState.volume = vol;
   pitchDebug = pitchState;
-  return new Promise(function (resolve) {
+  return new Promise(function (resolve, reject) {
     pitchState.resolve = resolve;
-    analyzePitch2Loop1(pitchState);
+    if (buf.length <= fftSize) reject(new Error("The sound is too short"));
+    else analyzePitch2Loop1(pitchState);
   });
 }
 
