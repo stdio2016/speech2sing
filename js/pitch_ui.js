@@ -1,6 +1,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('.sound-clips');
 function addClipInterface(name) {
+  name = name.name;
   var clip = new Option(name, "r_"+name);
   clips.appendChild(clip);
   console.log("added " + name);
@@ -136,7 +137,7 @@ function saveToBrowser(file) {
   }
   var name = prompt("Clip name:");
   if (name) {
-    saveSound(name, file);
+    saveSound(name, file, new Date(file.lastModified));
   }
 }
 

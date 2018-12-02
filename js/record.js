@@ -223,8 +223,9 @@ function addClipInterface(nameAndDate) {
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
-  var date = nameAndDate.date.toLocaleDateString();
-  lbl.textContent = name + "\ndate: " + date;
+  var date = nameAndDate.date;
+  date = date ? "date: "+date.toLocaleDateString() : "date unknown";
+  lbl.textContent = name + "\n" + date;
   var btnPlay = document.createElement("button");
   btnPlay.textContent = "Play";
   btnPlay.onclick = function () {

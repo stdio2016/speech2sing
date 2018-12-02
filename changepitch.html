@@ -18,6 +18,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('.sound-clips');
 function addClipInterface(name) {
+  name = name.name;
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
