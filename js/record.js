@@ -83,10 +83,13 @@ function stopRecordFinally() {
   var name = prompt("Enter name for this sound", getDefaultName());
   chunks = [];
   if (name) {
-    saveSound(name, blob)['catch'](function(e) {
+    var now = new Date();
+    saveSound(name, blob, now).then(function (e) {
+      console.log("saved successfully", e);
+    })['catch'](function(e) {
       errorbox(Error(e));
     });
-    addClipInterface(name);
+    addClipInterface({name: name, date: now});
   }
   btnRecord.disabled = false;
 }
@@ -214,12 +217,14 @@ function showWave() {
   canvasCtx.stroke();
 }
 
-function addClipInterface(name) {
+function addClipInterface(nameAndDate) {
+  var name = nameAndDate.name;
   if (files['f'+name]) return "Loaded";
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
-  lbl.textContent = name;
+  var date = nameAndDate.date.toLocaleDateString();
+  lbl.textContent = name + "\ndate: " + date;
   var btnPlay = document.createElement("button");
   btnPlay.textContent = "Play";
   btnPlay.onclick = function () {
@@ -247,7 +252,9 @@ function addClipInterface(name) {
   btnDel.textContent = "Delete";
   btnDel.onclick = function () {
     if (!confirm("Really want to delete this sound?")) return ;
-    deleteSound(name);
+    deleteSound(name).then(function (e) {
+      console.log("deleted successfully", e);
+    });
     // prevent memory leak
     if (sessionStorage.speech2sing_prevBlobURL === audioElt.src) {
       window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
@@ -261,7 +268,7 @@ function addClipInterface(name) {
   lbl.appendChild(btnDel);
   clips.appendChild(clip);
   files['f'+name] = 1;
-  console.log("added" + name);
+  console.log("added " + name);
 }
 
 var audioNode = null;

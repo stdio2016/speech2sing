@@ -4,16 +4,15 @@ var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 
 window.addEventListener('load', function () {
   try {
-    var dbreq = indexedDB.open("speech2sing_records",2);
+    var dbreq = indexedDB.open("speech2sing_records", 3);
     dbreq.onupgradeneeded = function (event) {
       db = dbreq.result;
       var tran = dbreq.transaction;
       if (event.oldVersion < 1) {
         var store = db.createObjectStore("sounds", {keyPath: "name"});
       }
-      if (event.oldVersion < 2) {
-        addDateField(tran);
-      }
+      if (event.oldVersion < 2) addDateField(tran);
+      if (event.oldVersion < 3) speech2singDBV3(db, tran);
     };
     dbreq.onsuccess = function (event) {
       db = dbreq.result;
@@ -50,7 +49,20 @@ function addDateField(transaction) {
   };
 }
 
-function saveSound(name, file) {
+function speech2singDBV3(db, transaction) {
+  var names = db.createObjectStore("soundNames", {keyPath: "name"});
+  var req = transaction.objectStore("sounds").openCursor();
+  req.onsuccess = function (e) {
+    var cur = req.result;
+    if (cur) {
+      var data = cur.value;
+      names.add({name: data.name, date: data.date});
+      cur["continue"]();
+    }
+  };
+}
+
+function saveSound(name, file, now) {
   if (!db) {
     return new Promise(function (resolve, reject) {
       inMem_db[name] = file;
@@ -63,23 +75,27 @@ function saveSound(name, file) {
       var fr = new FileReader();
       var mime = file.type;
       fr.onload = function () {
-        var t = db.transaction("sounds", "readwrite");
+        var t = db.transaction(["sounds", "soundNames"], "readwrite");
         var s = t.objectStore("sounds");
         var fakeblob = {isBlob: true, buffer: fr.result, type: mime};
-        var req = s.put({name: name, file: fakeblob});
-        req.onsuccess = resolve;
-        req.onerror = reject;
+        s.put({name: name, file: fakeblob});
+        var s2 = t.objectStore("soundNames");
+        s2.put({name: name, date: now});
+        t.oncomplete = resolve;
+        t.onerror = reject;
       };
       fr.onerror = reject;
       fr.readAsArrayBuffer(file);
     });
   }
-  var t = db.transaction("sounds", "readwrite");
+  var t = db.transaction(["sounds", "soundNames"], "readwrite");
   var s = t.objectStore("sounds");
-  var req = s.put({name: name, file: file, date: new Date()});
+  s.put({name: name, file: file});
+  var s2 = t.objectStore("soundNames");
+  s2.put({name: name, date: now});
   return new Promise(function (resolve, reject) {
-    req.onsuccess = resolve;
-    req.onerror = reject;
+    t.oncomplete = resolve;
+    t.onerror = reject;
   });
 }
 
@@ -122,12 +138,14 @@ function deleteSound(name) {
       else reject({type:'NotFound'});
     });
   }
-  var t = db.transaction("sounds", "readwrite");
+  var t = db.transaction(["sounds", "soundNames"], "readwrite");
   var s = t.objectStore("sounds");
-  var req = s['delete'](name);
+  s['delete'](name);
+  var s2 = t.objectStore("soundNames");
+  s2['delete'](name);
   return new Promise(function (resolve, reject) {
-    req.onsuccess = resolve;
-    req.onerror = reject;
+    t.oncomplete = resolve;
+    t.onerror = reject;
   });
 }
 
@@ -137,9 +155,9 @@ function getSoundNames() {
       resolve(Object.keys(inMem_db));
     });
   }
-  var t = db.transaction("sounds", "readonly");
-  var s = t.objectStore("sounds");
-  var req = s.getAllKeys();
+  var t = db.transaction("soundNames", "readonly");
+  var s = t.objectStore("soundNames");
+  var req = s.getAll();
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
       if (req.result) {
