@@ -90,12 +90,14 @@ function stopRecordFinally() {
     });
     addClipInterface({name: name, date: now});
   }
-  btnRecord.disabled = false;
   // XXX: looks like Safari doesn't like reusing media stream
   if (isIOS || isSafari) {
     audioStreamNode.disconnect();
     audioStreamNode = null;
     tryToGetRecorder();
+  }
+  else {
+    btnRecord.disabled = false;
   }
 }
 
