@@ -20,7 +20,6 @@ var audioElt = document.querySelector("audio");
 var useMimeType = "";
 var hasAnySound = false;
 
-var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 var streamForRecord = audioCtx.createGain();
 
 btnRecord.disabled = true;
@@ -92,6 +91,12 @@ function stopRecordFinally() {
     addClipInterface({name: name, date: now});
   }
   btnRecord.disabled = false;
+  // XXX: looks like Safari doesn't like reusing media stream
+  if (isIOS || isSafari) {
+    audioStreamNode.disconnect();
+    audioStreamNode = null;
+    tryToGetRecorder();
+  }
 }
 
 function tryToGetRecorder() {
@@ -295,27 +300,4 @@ function startup() {
   else {
     alert("Your browser does not support audio recording");
   }
-}
-
-var audioLocked = isIOS;
-
-function resumeContext() {
-  if (audioCtx && audioLocked) {
-    audioCtx.resume();
-    var r = audioCtx.createOscillator();
-    (r.start || r.noteOn).call(r);
-    (r.stop || r.noteOff).call(r, audioCtx.currentTime+Math.random()*0.5);
-    r.frequency.value = 880;
-    r.detune.value = Math.random()*100 - 50;
-    var s = audioCtx.createGain();
-    s.gain.value = Math.random() * 0.5;
-    r.connect(s);
-    s.connect(audioCtx.destination);
-    window.removeEventListener('touchend', resumeContext);
-    audioLocked = false;
-  }
-}
-
-if (audioLocked) {
-  window.addEventListener('touchend', resumeContext);
 }

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>change pitch</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/forSafari.js"></script>
   <script src="lib/IndexedDB-getAll-shim.js"></script>
   <script src="js/storage.js"></script>
 </head>
@@ -58,19 +59,6 @@ function startup() {
   })['catch'](function (x) {
     console.error(x);
   });
-}
-
-window.ontouchend = function() {
-  r = actx.createOscillator();
-  (r.start || r.noteOn).call(r);
-  (r.stop || r.noteOff).call(r, actx.currentTime+Math.random()*0.5);
-  r.frequency.value = 880;
-  r.detune.value = Math.random()*100 - 50;
-  s = actx.createGain();
-  s.gain.value = Math.random() * 0.5;
-  r.connect(s);
-  s.connect(actx.destination);
-  window.ontouchend = null;
 }
 </script>
 </body>
