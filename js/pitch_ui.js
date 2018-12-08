@@ -248,25 +248,3 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
   };
   n.start(start);
 }
-
-var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
-var audioLocked = isIOS;
-
-function resumeContext() {
-  if (audioCtx && audioLocked) {
-    audioCtx.resume();
-    var r = audioCtx.createOscillator();
-    (r.start || r.noteOn).call(r);
-    (r.stop || r.noteOff).call(r, audioCtx.currentTime+Math.random()*0.5);
-    r.frequency.value = 880;
-    r.detune.value = Math.random()*100 - 50;
-    var s = audioCtx.createGain();
-    s.gain.value = Math.random() * 0.5;
-    r.connect(s);
-    s.connect(audioCtx.destination);
-    audioLocked = false;
-  }
-}
-
-addEventListener('click', resumeContext);
-addEventListener('touchend', resumeContext);

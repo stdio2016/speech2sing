@@ -21,7 +21,7 @@ function resumeContext() {
 }
 
 if (audioLocked) {
-  window.addEventListener('onload', function () {
+  window.addEventListener('load', function () {
     window.addEventListener('touchend', resumeContext); // for mobile
     window.addEventListener('click', resumeContext); // for desktop
   });
