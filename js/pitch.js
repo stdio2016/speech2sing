@@ -168,15 +168,8 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
   // multiply with Hann window
   var smp = new Float32Array(size * 2);
   var sum = 0;
-  var lf = 0.0, lf2 = 0.0;
-  var coef = 1200 / smpRate;
   for (var i = 0; i < size; i++) {
     var b = buf[pos+i];
-    // I don't care if high pass filter destroys phase
-    lf = b * coef + lf * (1-coef);
-    b -= lf;
-    lf2 = b * coef + lf2 * (1-coef);
-    b -= lf2;
     if (b > vol) vol = b;
     if (-b > vol) vol = -b;
     smp[i] = b * hannWindow[i];
