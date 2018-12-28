@@ -89,6 +89,11 @@ function analyzeFile(file) {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p/1.5;}, 1/1.2);
       showProgress("change to male voice");
     }
+    else if (selOutput.value === "harmonic") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p;});
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return nearestHarmonic(p, -2);});
+      showProgress("playing harmonic effect");
+    }
     window.bb = {buffer: bb, pitch: ans};
   }
   function error(x) {
@@ -160,7 +165,7 @@ function showSpectrum(buf, smpRate) {
       var im = result[j*2+1];
       var amp = Math.sqrt(re*re + im*im);
       bmp.data[(x + (h-j-1) * w)*4+0] = 0;
-      bmp.data[(x + (h-j-1) * w)*4+1] = Math.pow(amp, 0.67) * 10;
+      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 40;
       bmp.data[(x + (h-j-1) * w)*4+2] = 0;
       bmp.data[(x + (h-j-1) * w)*4+3] = 255;
     }
@@ -203,6 +208,29 @@ function nearestPitch(hz) {
     }
   }
   return 440 * Math.pow(2, (best-9) / 12);
+}
+
+function nearestHarmonic(hz, which) {
+  if (hz > 4000) return hz;
+  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
+  var arr = [0, 2, 4, 5, 7, 9, 11];
+  var octave = Math.round(n / 12);
+  var dist = 999;
+  var best = n, bestp = n;
+  for (var o = octave-1; o <= octave+1; o++) {
+    for (var p = 0; p < arr.length; p++) {
+      var r = arr[p] + o*12;
+      if (Math.abs(r-n) < dist) {
+        dist = Math.abs(r-n);
+        best = o * 7 + p;
+        bestp = o * 12 + arr[p];
+      }
+    }
+  }
+  var use = best + which;
+  var o2 = Math.floor(use / 7);
+  var p2 = use - o2 * 7;
+  return hz * Math.pow(2, (o2 + (arr[p2]-bestp)/12));
 }
 
 // I ask Web Audio API to do overlap and add for me! XD

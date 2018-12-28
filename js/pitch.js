@@ -76,8 +76,8 @@ function realTimeAutocorrelation(current, output) {
 
 var hannWindow, hannAuto;
 function buildHannWindow() {
-  hannWindow = new Float32Array(fftSize);
-  hannAuto = new Float32Array(fftSize);
+  hannWindow = new Float64Array(fftSize);
+  hannAuto = new Float64Array(fftSize);
   var k = 2 * Math.PI / fftSize;
   for (var i = 0; i < fftSize; i++) {
     var t = i / fftSize;
@@ -166,18 +166,20 @@ function analyzePitch2Loop1(state) {
 function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
   var vol = 0;
   // multiply with Hann window
-  var smp = new Float32Array(size * 2);
+  var smp = new Float64Array(size * 2);
   var sum = 0;
   for (var i = 0; i < size; i++) {
-    var b = buf[pos+i];
-    if (b > vol) vol = b;
-    if (-b > vol) vol = -b;
-    smp[i] = b * hannWindow[i];
-    sum += smp[i];
+    sum += buf[pos+i];
   }
   sum /= size;
   for (var i = 0; i < size; i++) {
-    smp[i] -= sum;
+    smp[i] = buf[pos+i] - sum;
+  }
+  for (var i = 0; i < size; i++) {
+    var b = smp[i];
+    if (b > vol) vol = b;
+    if (-b > vol) vol = -b;
+    smp[i] = b * hannWindow[i];
   }
   goodFft.realFFT(smp, smp);
   for (var i = 1; i < size; i++) {
@@ -202,7 +204,7 @@ function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
     2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
   var candidates = [{frequency: 0, strength: silenceR}];
   for (var i = 0; i < MaxCandidates; i++) {
-    candidates.push({frequency: 0, strength: silenceR});
+    candidates.push({frequency: 0, strength: 0});
   }
   for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
     if (smp[499+i] > smp[500+i] || smp[500+i] < smp[501+i]) continue;
