@@ -56,9 +56,15 @@ This program does not support IE. Please use Firefox or Chrome.</pre>
 <select class="sound-clips">
 <option value="loading">Loading...</option>
 </select>
-<button id="btnAnalyzeClip" onclick="analyzeClip()">Analyze</button>
+<button id="btnOpenClip" onclick="openClip()">Open</button>
 </p>
-
+<p>
+  <canvas id="canvas" class="visualizer" height="60"></canvas>
+</p>
+<p>
+  <button type="button" onclick="zoomLevel--">Zoom in</button>
+  <button type="button" onclick="zoomLevel++">Zoom out</button>
+</p>
 <script src="js/segment.js"></script>
 </body>
 </html>

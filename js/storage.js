@@ -111,6 +111,7 @@ function getSound(name, file) {
   var t = db.transaction("sounds", "readonly");
   var s = t.objectStore("sounds");
   var req = s['get'](name);
+  var err = new Error('File "' + name + '" Not Found');
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
       var result = req.result;
@@ -122,7 +123,7 @@ function getSound(name, file) {
         resolve(result);
       }
       else {
-        reject({target:{error:'File "' + name + '" Not Found'}});
+        reject({target:{error:err}});
       }
     };
     req.onerror = reject;
@@ -131,11 +132,12 @@ function getSound(name, file) {
 
 function deleteSound(name) {
   if (!db) {
+    var err = new Error('File "' + name + '" Not Found');
     return new Promise(function (resolve, reject) {
       if (name in inMem_db) {
         delete inMem_db[name];
       }
-      else reject({target:{error:'File "' + name + '" Not Found'}});
+      else reject({target:{error:err}});
     });
   }
   var t = db.transaction(["sounds", "soundNames"], "readwrite");
