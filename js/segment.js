@@ -193,20 +193,20 @@ function canvasTouchStart(e) {
   else{
     nofire = false;
   }
-  mouseDown({preventDefault: ignore, button: 0, clientX: touch[0].clientX, clientY: touch[0].clientY});
+  canvasMouseDown({preventDefault: ignore, button: 0, clientX: touch[0].clientX, clientY: touch[0].clientY});
 }
 function canvasTouchMove(e) {
   e.preventDefault();
   var touch = e.touches;
   if (nofire || touch.length != 1) return;
-  mouseMove({preventDefault: ignore, buttons: 1, clientX: touch[0].clientX, clientY: touch[0].clientY});
+  canvasMouseMove({preventDefault: ignore, buttons: 1, clientX: touch[0].clientX, clientY: touch[0].clientY});
 }
 function canvasTouchEnd(e) {
   e.preventDefault();
   var touch = e.touches;
   if (nofire || touch.length!=0) return;
   touch = e.changedTouches;
-  mouseUp({preventDefault: ignore, button: 0});
+  canvasMouseUp({preventDefault: ignore, button: 0});
 }
 canvas.addEventListener('touchstart', canvasTouchStart, false);
 canvas.addEventListener('touchmove', canvasTouchMove, false);
