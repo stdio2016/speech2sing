@@ -62,8 +62,8 @@ This program does not support IE. Please use Firefox or Chrome.</pre>
   <canvas id="canvas" class="visualizer" height="60"></canvas>
 </p>
 <p>
-  <button type="button" onclick="zoomLevel--">Zoom in</button>
-  <button type="button" onclick="zoomLevel++">Zoom out</button>
+  <button type="button" onclick="zoomLevel--; zoomPan*=2;">Zoom in</button>
+  <button type="button" onclick="zoomLevel++; zoomPan>>=1;">Zoom out</button>
 </p>
 <script src="js/segment.js"></script>
 </body>
