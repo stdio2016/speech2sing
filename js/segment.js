@@ -141,6 +141,19 @@ function showWave() {
   ctx.stroke();
 }
 
+function zoomIn() {
+  if (zoomLevel > 0) {
+    zoomLevel--;
+    zoomPan *= 2;
+  }
+}
+function zoomOut() {
+  if (zoomLevel < 14-1) {
+    zoomLevel++;
+    zoomPan >>= 1;
+  }
+}
+
 function canvasMouseDown(e){
   e.preventDefault();
   if (e.button == 0) {
@@ -193,20 +206,36 @@ function canvasTouchStart(e) {
   else{
     nofire = false;
   }
-  canvasMouseDown({preventDefault: ignore, button: 0, clientX: touch[0].clientX, clientY: touch[0].clientY});
+  canvasMouseDown({
+    timeStamp: e.timeStamp,
+    preventDefault: ignore,
+    button: 0,
+    clientX: touch[0].clientX,
+    clientY: touch[0].clientY
+  });
 }
 function canvasTouchMove(e) {
   e.preventDefault();
   var touch = e.touches;
   if (nofire || touch.length != 1) return;
-  canvasMouseMove({preventDefault: ignore, buttons: 1, clientX: touch[0].clientX, clientY: touch[0].clientY});
+  canvasMouseMove({
+    timeStamp: e.timeStamp,
+    preventDefault: ignore,
+    buttons: 1,
+    clientX: touch[0].clientX,
+    clientY: touch[0].clientY
+  });
 }
 function canvasTouchEnd(e) {
   e.preventDefault();
   var touch = e.touches;
   if (nofire || touch.length!=0) return;
   touch = e.changedTouches;
-  canvasMouseUp({preventDefault: ignore, button: 0});
+  canvasMouseUp({
+    timeStamp: e.timeStamp,
+    preventDefault: ignore,
+    button: 0
+  });
 }
 canvas.addEventListener('touchstart', canvasTouchStart, false);
 canvas.addEventListener('touchmove', canvasTouchMove, false);
