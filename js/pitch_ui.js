@@ -12,7 +12,7 @@ function startup() {
     clips.options.remove("loading");
     names.forEach(addClipInterface);
     if (names.length === 0) {
-      var no = new Option("No clips ;-(", "");
+      var no = new Option("No clips 😢", "");
       clips.options.add(no);
       clips.disabled = true;
       btnAnalyzeClip.disabled = true;

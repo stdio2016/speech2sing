@@ -21,10 +21,10 @@ function startup() {
     clips.options.remove("loading");
     names.forEach(addClipInterface);
     if (names.length === 0) {
-      var no = new Option("No clips ;-(", "");
+      var no = new Option("No clips 😢", "");
       clips.options.add(no);
       clips.disabled = true;
-      btnAnalyzeClip.disabled = true;
+      btnOpenClip.disabled = true;
     }
   })['catch'](errorbox);
 }
@@ -137,7 +137,7 @@ function showWave() {
   ctx.beginPath();
   ctx.moveTo(0, height/2);
   for (var i = 0; i < width; i++) {
-    var j = i + zoomPan;
+    var j = i + zoomPan | 0;
     if (j*2 >= wav.length) break;
     var x = i;
     ctx.lineTo(x, (1 - wav[j*2] * yAxisZoom) * height/2);
