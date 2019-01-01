@@ -53,12 +53,18 @@ This program does not support IE. Please use Firefox or Chrome.</pre>
 <h1>Syllable Segmentation</h1>
 <p>Choose a sound in browser:</p>
 <p>
-<select class="sound-clips">
+<select id="selClips">
 <option value="loading">Loading...</option>
 </select>
 <button id="btnOpenClip" onclick="openClip()">Open</button>
+<button id="btnSave" onclick="saveSegments()">Save</button>
 </p>
-<p>
+<p id=''>
+  <span id="lblStatus"></span>
+  <button type="button" id="btnEditRange" onclick="editRange()" hidden>Confirm</button>
+  <button type="button" id="btnAddRange" onclick="addRange()" disabled>Add segment</button>
+</p>
+<p style="margin: 0px 10px;">
   <canvas id="canvas" class="visualizer" height="60"></canvas>
 </p>
 <p>
@@ -67,6 +73,8 @@ This program does not support IE. Please use Firefox or Chrome.</pre>
   <button type="button" onclick="playVisible()">Play</button>
   <button type="button" onclick="playSelected()">Play selected</button>
 </p>
+<section class="sound-clips">
+</section>
 <script src="js/segment.js"></script>
 </body>
 </html>

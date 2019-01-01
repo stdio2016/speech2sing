@@ -1,7 +1,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-var clips = document.querySelector('.sound-clips');
+var clips = document.querySelector('#selClips');
 var canvas = document.querySelector('#canvas');
-var soundBuffer = {sampleRate: audioCtx.sampleRate};
+var soundBuffer = null;
 var waveArray = [[]];
 var MaxZoomLevel = 12;
 var zoomLevel = MaxZoomLevel;
@@ -10,9 +10,15 @@ var zoomPanV = 0;
 var yAxisZoom = 1;
 var playStartTime = 0;
 var playingSound = false;
-var selected = {start: 0, end: 0.5};
+var selected = {start: 0.5, end: 1};
+var editingSegment = null;
 var segments = {};
 var segmentId = 0;
+var divSegments = document.querySelector('.sound-clips');
+
+// for firefox only
+btnSave.disabled = true;
+btnAddRange.disabled = true;
 
 function addClipInterface(name) {
   name = name.name;
@@ -56,6 +62,8 @@ function openClip() {
     buildWaveArray();
     // zoom to fit
     zoomLevel = Math.log2(waveArray[0].length / canvas.width) | 0;
+    btnAddRange.disabled = false;
+    btnSave.disabled = false;
   }
   
   function decodeError(err) {
@@ -118,6 +126,7 @@ function fixZoomRange() {
 }
 
 function fixSelectRange(final) {
+  if (!soundBuffer) return ;
   if (final && selected.start > selected.end) {
     var tmp = selected.start;
     selected.start = selected.end;
@@ -226,6 +235,58 @@ function playVisible() {
   if (!soundBuffer) return ;
   var unit = Math.pow(2, zoomLevel+1) / soundBuffer.sampleRate;
   playRange(zoomPan * unit, canvas.width * unit);
+}
+
+function addRange() {
+  promptBox('Name for this segment', 'segment ' + segmentId, function (name) {
+    if (!name) return ;
+    var seg = {start: selected.start, end: selected.end, name: name};
+    addSegmentInterface(seg);
+  });
+}
+function editRange() {
+  if (editingSegment) {
+    editingSegment.start = selected.start;
+    editingSegment.end = selected.end;
+    editingSegment = null;
+    lblStatus.textContent = '';
+    btnEditRange.hidden = true;
+  }
+}
+
+function addSegmentInterface(range) {
+  var name = range.name;
+  var id = segmentId++;
+  var clip = document.createElement("div");
+  clip.className = "clip";
+  var lbl = document.createElement("p");
+  lbl.textContent = name;
+  var btnEdit = document.createElement("button");
+  btnEdit.textContent = "Edit";
+  btnEdit.onclick = function () {
+    lblStatus.textContent = 'Editing segment "'+name+'"';
+    btnEditRange.hidden = false;
+    editingSegment = range;
+    selected.start = range.start;
+    selected.end = range.end;
+  };
+  var btnDel = document.createElement("button");
+  btnDel.className = "red";
+  btnDel.textContent = "Delete";
+  btnDel.onclick = function () {
+    confirmBox("Really want to delete this segment?", function (result) {
+      if (result) {
+        delete segments[id];
+        clip.remove();
+      }
+    });
+  };
+  clip.appendChild(lbl);
+  lbl.appendChild(btnEdit);
+  lbl.appendChild(btnDel);
+  divSegments.appendChild(clip);
+  segments[id] = range;
+  console.log("added " + name);
 }
 
 function canvasMouseDown(e){
