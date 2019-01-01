@@ -130,6 +130,71 @@ function getSound(name, file) {
   });
 }
 
+function saveSoundAttribute(name, file, attr) {
+  var obj = Object.assign({name: name, file: file}, attr);
+  if (!db) {
+    return new Promise(function (resolve, reject) {
+      resolve(null);
+    });
+  }
+  if (isIOS) {
+    // need to convert Blob to ArrayBuffer
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      var mime = file.type;
+      fr.onload = function () {
+        var t = db.transaction("sounds", "readwrite");
+        var s = t.objectStore("sounds");
+        var fakeblob = {isBlob: true, buffer: fr.result, type: mime};
+        obj.file = fakeblob;
+        s.put(obj);
+        t.oncomplete = resolve;
+        t.onerror = reject;
+      };
+      fr.onerror = reject;
+      fr.readAsArrayBuffer(file);
+    });
+  }
+  var t = db.transaction("sounds", "readwrite");
+  var s = t.objectStore("sounds");
+  s.put(obj);
+  return new Promise(function (resolve, reject) {
+    t.oncomplete = resolve;
+    t.onerror = reject;
+  });
+}
+
+function getSound(name, file) {
+  if (!db) {
+    return new Promise(function (resolve, reject) {
+      if (name in inMem_db) {
+        resolve(inMem_db[name]);
+      }
+      else reject(null);
+    });
+  }
+  var t = db.transaction("sounds", "readonly");
+  var s = t.objectStore("sounds");
+  var req = s['get'](name);
+  var err = new Error('File "' + name + '" Not Found');
+  return new Promise(function (resolve, reject) {
+    req.onsuccess = function () {
+      var result = req.result;
+      if (result && result.file) {
+        var file = result.file;
+        if (!(file instanceof Blob)) {
+          result.file = new Blob([file.buffer], {type: file.type});
+        }
+        resolve(result);
+      }
+      else {
+        reject({target:{error:err}});
+      }
+    };
+    req.onerror = reject;
+  });
+}
+
 function deleteSound(name) {
   if (!db) {
     var err = new Error('File "' + name + '" Not Found');

@@ -2,6 +2,8 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('#selClips');
 var canvas = document.querySelector('#canvas');
 var soundBuffer = null;
+var soundBlob = null;
+var soundName = "";
 var waveArray = [[]];
 var MaxZoomLevel = 12;
 var zoomLevel = MaxZoomLevel;
@@ -12,8 +14,7 @@ var playStartTime = 0;
 var playingSound = false;
 var selected = {start: 0.5, end: 1};
 var editingSegment = null;
-var segments = {};
-var segmentId = 0;
+var segments = new Set();
 var divSegments = document.querySelector('.sound-clips');
 
 // for firefox only
@@ -50,10 +51,13 @@ function openClip() {
     getSound(name).then(function (result) {
       // convert file to ArrayBuffer
       var fr = new FileReader();
+      soundBlob = result.file;
+      soundName = name;
       fr.readAsArrayBuffer(result.file);
       fr.onload = function () {
         audioCtx.decodeAudioData(fr.result, decodeSuccess, decodeError);
       };
+      initInterface(result.segments);
     })['catch'](errorbox);
   }
 
@@ -238,7 +242,7 @@ function playVisible() {
 }
 
 function addRange() {
-  promptBox('Name for this segment', 'segment ' + segmentId, function (name) {
+  promptBox('Name for this segment', 'segment ' + segments.size, function (name) {
     if (!name) return ;
     var seg = {start: selected.start, end: selected.end, name: name};
     addSegmentInterface(seg);
@@ -249,14 +253,13 @@ function editRange() {
     editingSegment.start = selected.start;
     editingSegment.end = selected.end;
     editingSegment = null;
-    lblStatus.textContent = '';
-    btnEditRange.hidden = true;
   }
+  lblStatus.textContent = '';
+  btnEditRange.hidden = true;
 }
 
 function addSegmentInterface(range) {
   var name = range.name;
-  var id = segmentId++;
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
@@ -276,7 +279,7 @@ function addSegmentInterface(range) {
   btnDel.onclick = function () {
     confirmBox("Really want to delete this segment?", function (result) {
       if (result) {
-        delete segments[id];
+        segments['delete'](range);
         clip.remove();
       }
     });
@@ -285,8 +288,20 @@ function addSegmentInterface(range) {
   lbl.appendChild(btnEdit);
   lbl.appendChild(btnDel);
   divSegments.appendChild(clip);
-  segments[id] = range;
+  segments.add(range);
   console.log("added " + name);
+}
+
+function initInterface(segs) {
+  editRange();
+  segments = new Set();
+  while (divSegments.firstChild) {
+    divSegments.removeChild(divSegments.firstChild);
+  }
+  if (!segs) return ;
+  for (var i = 0; i < segs.length; i++) {
+    addSegmentInterface(segs[i]);
+  }
 }
 
 function canvasMouseDown(e){
@@ -389,3 +404,16 @@ function canvasTouchEnd(e) {
 canvas.addEventListener('touchstart', canvasTouchStart, false);
 canvas.addEventListener('touchmove', canvasTouchMove, false);
 canvas.addEventListener('touchend', canvasTouchEnd, false);
+
+function saveSegments() {
+  var segs = [];
+  segments.forEach(function (x) {
+    segs.push(x);
+  });
+  segs.sort(function (a, b) {
+    if (a.first < b.first) return -1;
+    if (a.first > b.first) return 1;
+    return 0;
+  });
+  saveSoundAttribute(soundName, soundBlob, {segments: segs});
+}
