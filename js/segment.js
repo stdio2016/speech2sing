@@ -298,8 +298,8 @@ function canvasTouchStart(e) {
     timeStamp: e.timeStamp,
     preventDefault: ignore,
     button: 0,
-    offsetX: touch[0].offsetX,
-    offsetY: touch[0].offsetY
+    offsetX: touch[0].clientX - canvas.offsetLeft,
+    offsetY: touch[0].clientY - canvas.offsetTop
   });
 }
 function canvasTouchMove(e) {
@@ -310,8 +310,8 @@ function canvasTouchMove(e) {
     timeStamp: e.timeStamp,
     preventDefault: ignore,
     buttons: 1,
-    offsetX: touch[0].offsetX,
-    offsetY: touch[0].offsetY
+    offsetX: touch[0].clientX - canvas.offsetLeft,
+    offsetY: touch[0].clientY - canvas.offsetTop
   });
 }
 function canvasTouchEnd(e) {
