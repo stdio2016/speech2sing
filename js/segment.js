@@ -189,7 +189,7 @@ function canvasMouseMove(e){
     zoomPan -= (newx - mouse.x);
     mouse.x = newx;
     var t = e.timeStamp;
-    var exp = Math.exp((mouse.t - t)/60);
+    var exp = Math.exp(-16/60);
     var newpx = mouse.px * exp + newx * (1 - exp);
     mouse.vx = newpx - mouse.px;
     mouse.px = newpx;
@@ -200,7 +200,8 @@ function canvasMouseMove(e){
 function canvasMouseUp(e){
   e.preventDefault();
   if (e.button == 0 && mouse.dragging) {
-    zoomPanV = -mouse.vx;
+    if (e.timeStamp - mouse.t < 200) zoomPanV = -mouse.vx;
+    else zoomPanV = 0;
     mouse.dragging = false;
   }
 }
@@ -239,6 +240,7 @@ function canvasTouchMove(e) {
     clientX: touch[0].clientX,
     clientY: touch[0].clientY
   });
+  console.log(e.timeStamp, mouse.vx);
 }
 function canvasTouchEnd(e) {
   e.preventDefault();
