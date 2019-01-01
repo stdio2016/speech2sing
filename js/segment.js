@@ -8,6 +8,8 @@ var zoomLevel = MaxZoomLevel;
 var zoomPan = 0;
 var zoomPanV = 0;
 var yAxisZoom = 1;
+var playStartTime = 0;
+var playingSound = false;
 
 function addClipInterface(name) {
   name = name.name;
@@ -144,6 +146,14 @@ function showWave() {
     ctx.lineTo(x, (1 - wav[j*2+1] * yAxisZoom) * height/2);
   }
   ctx.stroke();
+  if (playingSound) {
+    var t = audioCtx.currentTime - playStartTime;
+    var x = t * soundBuffer.sampleRate / Math.pow(2, zoomLevel+1) - zoomPan;
+    ctx.fillStyle = '#f0f';
+    ctx.beginPath();
+    ctx.rect(x - 2, 0, 4, height);
+    ctx.fill();
+  }
 }
 
 function zoomIn() {
@@ -165,9 +175,15 @@ function playRange() {
   var t = zoomPan * du;
   var node = audioCtx.createBufferSource();
   node.buffer = soundBuffer;
-  console.log(node);
   node.connect(audioCtx.destination);
-  node.start(0, t, du * canvas.width);
+  
+  var start = audioCtx.currentTime;
+  playStartTime = start - t;
+  playingSound = true;
+  node.start(start, t, du * canvas.width);
+  node.onended = function () {
+    playingSound = false;
+  };
 }
 
 function canvasMouseDown(e){
