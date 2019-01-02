@@ -164,37 +164,6 @@ function saveSoundAttribute(name, file, attr) {
   });
 }
 
-function getSound(name, file) {
-  if (!db) {
-    return new Promise(function (resolve, reject) {
-      if (name in inMem_db) {
-        resolve(inMem_db[name]);
-      }
-      else reject(null);
-    });
-  }
-  var t = db.transaction("sounds", "readonly");
-  var s = t.objectStore("sounds");
-  var req = s['get'](name);
-  var err = new Error('File "' + name + '" Not Found');
-  return new Promise(function (resolve, reject) {
-    req.onsuccess = function () {
-      var result = req.result;
-      if (result && result.file) {
-        var file = result.file;
-        if (!(file instanceof Blob)) {
-          result.file = new Blob([file.buffer], {type: file.type});
-        }
-        resolve(result);
-      }
-      else {
-        reject({target:{error:err}});
-      }
-    };
-    req.onerror = reject;
-  });
-}
-
 function deleteSound(name) {
   if (!db) {
     var err = new Error('File "' + name + '" Not Found');
