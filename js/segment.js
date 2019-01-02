@@ -2,8 +2,7 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('#selClips');
 var canvas = document.querySelector('#canvas');
 var soundBuffer = null;
-var soundBlob = null;
-var soundName = "";
+var soundFile;
 var waveArray = [[]];
 var MaxZoomLevel = 12;
 var zoomLevel = MaxZoomLevel;
@@ -51,8 +50,7 @@ function openClip() {
     getSound(name).then(function (result) {
       // convert file to ArrayBuffer
       var fr = new FileReader();
-      soundBlob = result.file;
-      soundName = name;
+      soundFile = result;
       fr.readAsArrayBuffer(result.file);
       fr.onload = function () {
         audioCtx.decodeAudioData(fr.result, decodeSuccess, decodeError);
@@ -273,6 +271,12 @@ function addSegmentInterface(range) {
     selected.start = range.start;
     selected.end = range.end;
   };
+  var btnPlay = document.createElement("button");
+  btnPlay.textContent = "Play";
+  btnPlay.onclick = function () {
+    btnEdit.onclick();
+    playSelected();
+  };
   var btnDel = document.createElement("button");
   btnDel.className = "red";
   btnDel.textContent = "Delete";
@@ -286,6 +290,7 @@ function addSegmentInterface(range) {
   };
   clip.appendChild(lbl);
   lbl.appendChild(btnEdit);
+  lbl.appendChild(btnPlay);
   lbl.appendChild(btnDel);
   divSegments.appendChild(clip);
   segments.add(range);
@@ -415,5 +420,6 @@ function saveSegments() {
     if (a.first > b.first) return 1;
     return 0;
   });
-  saveSoundAttribute(soundName, soundBlob, {segments: segs});
+  soundFile.segments = segs;
+  saveSoundAttribute(soundFile.name, soundFile.file, soundFile);
 }
