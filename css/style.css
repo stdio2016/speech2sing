@@ -77,3 +77,7 @@ button:disabled {
   padding: 0.5em;
   margin: 0 0.5em;
 }
+
+.sound-clips .clip button.plus {
+  float: none;
+}
