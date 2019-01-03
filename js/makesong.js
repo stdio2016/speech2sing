@@ -1,3 +1,4 @@
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var divNotes = document.querySelector('.sound-clips');
 var allSongs = [];
 var PitchName = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -148,19 +149,28 @@ function loadFileIntoCache(name) {
     return new Promise(function (yes, no) {
       v.waiting.push({yes: yes, no: no});
       cachedFiles['set'](name, v);
-      getSound(name).then(function (result) {
-        v.finished = true;
-        v.result = result;
-        console.log("loaded", name);
-        v.waiting.forEach(function (e) { e.yes(result); });
-        v.waiting = [];
-      }).catch(function (x) {
+      function fail(x) {
         v.finished = true;
         v.result = x;
         console.log("load failed", name);
         v.waiting.forEach(function (e) { e.no(x); });
         v.waiting = [];
-      });
+      }
+      getSound(name).then(function (result) {
+        v.result = result;
+        var fr = new FileReader();
+        fr.onload = function () {
+          audioCtx.decodeAudioData(fr.result, function (buf) {
+            v.finished = true;
+            v.result.buffer = buf;
+            console.log("loaded", name);
+            v.waiting.forEach(function (e) { e.yes(result); });
+            v.waiting = [];
+          }, fail);
+        };
+        fr.onerror = fail;
+        fr.readAsArrayBuffer(result.file);
+      }).catch(fail);
     });
   }
 }
@@ -193,4 +203,37 @@ function updateSegmentOption(sel, segments) {
   segments.forEach(function (seg) {
     sel.add(new Option(seg.name, seg.name));
   });
+}
+
+function MyBadSynth() {
+  var n = divNotes.children.length - 1;
+  var pos = 0;
+  var t = audioCtx.currentTime;
+  for (var i = 0; i < n; i++) {
+    var ch = divNotes.children[i];
+    var id = +ch.id.substr(5);
+    var clip = document.getElementById("selClip_" + id).value;
+    var seg = document.getElementById("selSegment_" + id).value;
+    var pitch = +document.getElementById("selPitch_" + id).value;
+    var beat = +document.getElementById("selBeat_" + id).value;
+    console.log(clip, seg, pitch, beat);
+    if (clip.startsWith("c_")) {
+      var f = cachedFiles.get(clip.substr(2)).result;
+      var segs = f.segments;
+      for (var j = 0; j < segs.length; j++) {
+        if (segs[j].name === seg) break;
+      }
+      var start = segs[j].start;
+      var end = segs[j].end;
+      var snd = audioCtx.createBufferSource();
+      snd.buffer = f.buffer;
+      snd.loopStart = start;
+      snd.loopEnd = end;
+      snd.loop = true;
+      snd.connect(audioCtx.destination);
+      snd.start(t + pos, start);
+      snd.stop(t + pos + beat * 60 / 120);
+    }
+    pos += beat * 60 / 120;
+  }
 }
