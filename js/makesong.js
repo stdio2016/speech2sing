@@ -8,6 +8,8 @@ var BeatName = [
   [2, "half"], [3, "dotted half"],
   [4, "whole"]
 ];
+// this cache has reference counting! use with caution
+var cachedFiles = new Map();
 var genId = 0;
 
 function startup() {
@@ -16,6 +18,7 @@ function startup() {
     allSongs = names;
   })['catch'](function (x) {
     console.error(x);
+    alertbox('Cannot load sounds. You can try refreshing this page');
   });
 }
 
@@ -52,14 +55,14 @@ function createBeatSelect(def) {
   var sel = document.createElement("select");
   sel.id = "selBeat_" + genId;
   var choose = 1;
-  if (def) choose = def.pitch;
+  if (def) choose = def.beat;
   BeatName.forEach(function (n) {
     sel.add(new Option(n[1], n[0], false, n[0] == choose))
   });
   return sel;
 }
 
-function addNoteInterface(before) {
+function addNoteInterface(before, setting) {
   genId++;
   var note = document.createElement("div");
   note.className = "clip";
@@ -74,20 +77,35 @@ function addNoteInterface(before) {
   };
   lbl.appendChild(btnAdd);
   
-  var selClip = createClipSelect();
+  var selClip = createClipSelect(setting);
+  var oldClip = selClip.value;
+  selClip.oninput = function () {
+    if (oldClip.startsWith("c_"))
+      unloadFileFromCache(oldClip.substr(2));
+    oldClip = selClip.value;
+    if (selClip.value.startsWith("c_")) {
+      loadFileIntoCache(selClip.value.substr(2)).then(function (dat) {
+        updateSegmentOption(selSegment, dat.segments);
+      }).catch(errorbox);
+    }
+    else {
+      updateSegmentOption(selSegment, "-");
+    }
+  };
   lbl.appendChild(selClip);
   
   var selSegment = document.createElement("select");
   selSegment.id = "selSegment_" + genId;
   selSegment.add(new Option("segment name", ""));
+  updateSegmentOption(selSegment, "-");
   lbl.appendChild(new Text(" "));
   lbl.appendChild(selSegment);
   
-  var selPitch = createPitchSelect();
+  var selPitch = createPitchSelect(setting);
   lbl.appendChild(new Text(" pitch: "));
   lbl.appendChild(selPitch);
   
-  var selBeat = createBeatSelect();
+  var selBeat = createBeatSelect(setting);
   lbl.appendChild(new Text(" beat: "));
   lbl.appendChild(selBeat);
   
@@ -98,6 +116,8 @@ function addNoteInterface(before) {
     confirmBox("Really want to delete this note?", function (result) {
       if (result) {
         note.remove();
+        if (selClip.value.startsWith("c_"))
+          unloadFileFromCache(selClip.value.substr(2));
       }
     });
   };
@@ -107,4 +127,70 @@ function addNoteInterface(before) {
   if (!before) before = divNotes.lastElementChild;
   divNotes.insertBefore(note, before);
   console.log("added " + name);
+}
+
+function loadFileIntoCache(name) {
+  if (cachedFiles.has(name)) {
+    var v = cachedFiles['get'](name);
+    v.refCount++;
+    if (v.finished) {
+      return Promise.resolve(v.result);
+    }
+    else {
+      return new Promise(function (yes, no) {
+        v.waiting.push({yes: yes, no: no});
+      });
+    }
+  }
+  else {
+    var v = {waiting: [], refCount: 1};
+    console.log("loading", name);
+    return new Promise(function (yes, no) {
+      v.waiting.push({yes: yes, no: no});
+      cachedFiles['set'](name, v);
+      getSound(name).then(function (result) {
+        v.finished = true;
+        v.result = result;
+        console.log("loaded", name);
+        v.waiting.forEach(function (e) { e.yes(result); });
+        v.waiting = [];
+      }).catch(function (x) {
+        v.finished = true;
+        v.result = x;
+        console.log("load failed", name);
+        v.waiting.forEach(function (e) { e.no(x); });
+        v.waiting = [];
+      });
+    });
+  }
+}
+
+function unloadFileFromCache(name) {
+  if (cachedFiles.has(name)) {
+    var v = cachedFiles['get'](name);
+    v.refCount--;
+    if (v.refCount <= 0) {
+      cachedFiles['delete'](name);
+      console.log("unloaded", name);
+    }
+  }
+}
+
+function updateSegmentOption(sel, segments) {
+  // clear options
+  sel.options.length = 0;
+  if (segments === "-") {
+    sel.hidden = true;
+    return ;
+  }
+  sel.hidden = false;
+  if (!segments || segments.length === 0) {
+    sel.add(new Option("no segments", ""));
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  segments.forEach(function (seg) {
+    sel.add(new Option(seg.name, seg.name));
+  });
 }
