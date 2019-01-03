@@ -16,7 +16,6 @@ window.addEventListener('load', function () {
     };
     dbreq.onsuccess = function (event) {
       db = dbreq.result;
-      console.log(db);
       startup();
     };
     dbreq.onerror = function (event) {
