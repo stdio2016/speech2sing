@@ -230,9 +230,12 @@ function addClipInterface(nameAndDate) {
   var clip = document.createElement("div");
   clip.className = "clip";
   var lbl = document.createElement("p");
+  var lblName = document.createElement("span");
+  lblName.textContent = name;
+  lbl.appendChild(lblName);
   var date = nameAndDate.date;
   date = date ? "date: "+date.toLocaleDateString() : "date unknown";
-  lbl.textContent = name + "\n" + date;
+  lbl.appendChild(new Text("\n" + date));
   var btnPlay = document.createElement("button");
   btnPlay.textContent = "Play";
   btnPlay.onclick = function () {
@@ -255,6 +258,20 @@ function addClipInterface(nameAndDate) {
       errorbox(Error(e.target.error));
     });
   };
+  var btnRename = document.createElement("button");
+  btnRename.textContent = "Rename";
+  btnRename.onclick = function () {
+    promptBox("Type a new name: ", name, function (newName) {
+      if (newName === name || !newName) return;
+      renameSound(name, newName).then(function () {
+        lblName.textContent = newName;
+        name = newName;
+      }).catch(function () {
+        alertBox("Unable to rename");
+      });
+    });
+  };
+
   var btnDel = document.createElement("button");
   btnDel.className = "red";
   btnDel.textContent = "Delete";
@@ -273,6 +290,7 @@ function addClipInterface(nameAndDate) {
   };
   clip.appendChild(lbl);
   lbl.appendChild(btnPlay);
+  lbl.appendChild(btnRename);
   lbl.appendChild(btnDel);
   clips.appendChild(clip);
   files['f'+name] = 1;

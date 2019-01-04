@@ -4,7 +4,7 @@ var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 
 window.addEventListener('load', function () {
   try {
-    var dbreq = indexedDB.open("speech2sing_records", 3);
+    var dbreq = indexedDB.open("speech2sing_records", 4);
     dbreq.onupgradeneeded = function (event) {
       db = dbreq.result;
       var tran = dbreq.transaction;
@@ -13,6 +13,10 @@ window.addEventListener('load', function () {
       }
       if (event.oldVersion < 2) addDateField(tran);
       if (event.oldVersion < 3) speech2singDBV3(db, tran);
+      if (event.oldVersion < 4) {
+        db.createObjectStore("tracks", {keyPath: "name"});
+        db.createObjectStore("trackNames", {keyPath: "name"});
+      }
     };
     dbreq.onsuccess = function (event) {
       db = dbreq.result;
@@ -98,7 +102,7 @@ function saveSound(name, file, now) {
   });
 }
 
-function getSound(name, file) {
+function getSound(name) {
   if (!db) {
     return new Promise(function (resolve, reject) {
       if (name in inMem_db) {
@@ -163,20 +167,19 @@ function saveSoundAttribute(name, file, attr) {
   });
 }
 
-function deleteSound(name) {
+function deleteSoundInternal(name, table, nameTable) {
   if (!db) {
-    var err = new Error('File "' + name + '" Not Found');
     return new Promise(function (resolve, reject) {
       if (name in inMem_db) {
         delete inMem_db[name];
       }
-      else reject({target:{error:err}});
+      resolve({target: {result: name}});
     });
   }
-  var t = db.transaction(["sounds", "soundNames"], "readwrite");
-  var s = t.objectStore("sounds");
+  var t = db.transaction([table, nameTable], "readwrite");
+  var s = t.objectStore(table);
   s['delete'](name);
-  var s2 = t.objectStore("soundNames");
+  var s2 = t.objectStore(nameTable);
   s2['delete'](name);
   return new Promise(function (resolve, reject) {
     t.oncomplete = resolve;
@@ -184,14 +187,16 @@ function deleteSound(name) {
   });
 }
 
-function getSoundNames() {
+function deleteSound(name) {
+  return deleteSoundInternal(name, "sounds", "soundNames");
+}
+
+function getSoundNamesInternal(table) {
   if (!db) {
-    return new Promise(function (resolve, reject) {
-      resolve(Object.keys(inMem_db));
-    });
+    return Promise.resolve(Object.keys(inMem_db));
   }
-  var t = db.transaction("soundNames", "readonly");
-  var s = t.objectStore("soundNames");
+  var t = db.transaction(table, "readonly");
+  var s = t.objectStore(table);
   var req = s.getAll();
   return new Promise(function (resolve, reject) {
     req.onsuccess = function () {
@@ -204,4 +209,96 @@ function getSoundNames() {
     };
     req.onerror = reject;
   }); 
+}
+
+function getSoundNames() {
+  return getSoundNamesInternal("soundNames");
+}
+
+function renameSound(oldName, newName) {
+  if (!db) {
+    return new Promise(function (resolve, reject) {
+      inMem_db[newName] = inMem_db[oldName];
+      delete inMem_db[oldName];
+      resolve(null);
+    });
+  }
+  var t = db.transaction(["sounds", "soundNames"], "readwrite");
+  var s = t.objectStore("sounds");
+  var s2 = t.objectStore("soundNames");
+  return new Promise(function (resolve, reject) {
+    var p1 = new Promise(function (yes, no) {
+      var req = s.get(oldName);
+      req.onsuccess = yes;
+    });
+    var p2 = new Promise(function (yes, no) {
+      var req = s2.get(oldName);
+      req.onsuccess = yes;
+    });
+    Promise.all([p1, p2]).then(function (all) {
+      s['delete'](oldName);
+      s2['delete'](oldName);
+      var dat = all[0].target.result;
+      dat.name = newName;
+      var index = all[1].target.result;
+      index.name = newName;
+      s.put(dat);
+      s2.put(index);
+    }).catch(reject);
+    t.oncomplete = resolve;
+    t.onerror = reject;
+  });
+}
+
+function getTrackNames() {
+  return getSoundNamesInternal("trackNames");
+}
+
+function saveTrack(name, file, now) {
+  if (!db) {
+    return new Promise(function (resolve, reject) {
+      inMem_db[name] = file;
+      resolve(null);
+    });
+  }
+  var t = db.transaction(["tracks", "trackNames"], "readwrite");
+  var s = t.objectStore("tracks");
+  s.put({name: name, file: file});
+  var s2 = t.objectStore("trackNames");
+  s2.put({name: name, date: now});
+  return new Promise(function (resolve, reject) {
+    t.oncomplete = resolve;
+    t.onerror = reject;
+  });
+}
+
+function getTrack(name) {
+  if (!db) {
+    return new Promise(function (resolve, reject) {
+      if (name in inMem_db) {
+        resolve(inMem_db[name]);
+      }
+      else reject(null);
+    });
+  }
+  var t = db.transaction("tracks", "readonly");
+  var s = t.objectStore("tracks");
+  var req = s['get'](name);
+  var err = new Error('Track "' + name + '" Not Found');
+  return new Promise(function (resolve, reject) {
+    req.onsuccess = function () {
+      var result = req.result;
+      if (result && result.file) {
+        resolve(result);
+      }
+      else {
+        reject({target:{error:err}});
+      }
+    };
+    req.onerror = reject;
+  });
+}
+
+function deleteTrack(name) {
+  return deleteSoundInternal(name, "tracks", "trackNames");
 }
