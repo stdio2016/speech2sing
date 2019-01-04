@@ -49,15 +49,22 @@ function analyzeFile(file) {
   fr.readAsArrayBuffer(file);
   var buflen;
   var bb;
+  var detector;
   function getBuffer(audioBuf) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
     bb = audioBuf;
     showSpectrum(buf, audioCtx.sampleRate);
-    analyzePitch2(buf, audioCtx.sampleRate).then(afterAnalyze)
+    detector = new PitchDetector();
+    detector.showProgress = function (prog, total) {
+      showProgress("calculating pitch candidate at " + prog + "s");
+    };
+    detector.analyze(buf, audioCtx.sampleRate).then(afterAnalyze)
     ['catch'](error);
+    pitchDebug = detector;
   }
   function afterAnalyze(ans) {
+    detector.destroy();
     showPitch(ans, audioCtx.sampleRate);
     if (selOutput.value === "hum") {
       humPitch(buflen, ans);
@@ -163,9 +170,9 @@ function showSpectrum(buf, smpRate) {
     for (j = 0; j < h; j++) {
       var re = result[j*2];
       var im = result[j*2+1];
-      var amp = Math.sqrt(re*re + im*im);
+      var amp = re*re + im*im;
       bmp.data[(x + (h-j-1) * w)*4+0] = 0;
-      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 40;
+      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 20;
       bmp.data[(x + (h-j-1) * w)*4+2] = 0;
       bmp.data[(x + (h-j-1) * w)*4+3] = 255;
     }
@@ -275,4 +282,13 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
     showProgress("finished");
   };
   n.start(start);
+}
+
+function showProgress(text) {
+  if (text) {
+    txtProgress.textContent = text;
+  }
+  else {
+    txtProgress.textContent = "";
+  }
 }

@@ -88,41 +88,61 @@ function buildHannWindow() {
 buildHannWindow();
 
 var pitchDebug;
-function showProgress(text) {
-  if (text) {
-    txtProgress.textContent = text;
+
+var MaxThreadCount = navigator.hardwareConcurrency;
+function PitchDetector() {
+  this.workers = [];
+  var goodThread = Math.max(MaxThreadCount/2, 1);
+  //goodThread = 1;
+  for (var i = 0; i < goodThread; i++) {
+    this.workers.push(new Worker("js/pitchworker.js"));
+    this.workers[i].onmessage = this.distributeWork.bind(this);
   }
-  else {
-    txtProgress.textContent = "";
-  }
+  this.msgId = 0;
+  this.showProgress = function (progress, total) {
+    //console.log("finished " + progress + "s/" + (total|0) + "s");
+  };
 }
 
-function analyzePitch2(buf, smpRate) {
-  var pitchState = {
-    buf: buf,
-    smpRate: smpRate,
-    pos: 0,
-    secs: 0,
-    fftSize: fftSize,
-    candidates: [],
-    pitch: [],
-    resolve: null,
-    startTime: new Date() // for performance measure
-  };
+PitchDetector.prototype.analyze = function (buf, smpRate) {
+  var id = ++this.msgId;
+  this.buf = buf;
+  this.smpRate = smpRate;
+  this.candidates = [];
+  this.pitch = [];
+  this.pos = 0;
+  this.secs = 0;
+  this.finished = -this.workers.length;
+  this.startTime = new Date(); // for performance measure
   // get global volume
   var vol = 0;
   for (var i = 0; i < buf.length; i++) {
     if (buf[i] > vol) vol = buf[i];
     if (-buf[i] > vol) vol = -buf[i];
   }
-  pitchState.volume = vol;
-  pitchDebug = pitchState;
+  this.volume = vol;
+  if (buf.length <= fftSize)
+    return Promise.reject(new Error("The sound is too short"));
+  var me = this;
   return new Promise(function (resolve, reject) {
-    pitchState.resolve = resolve;
-    if (buf.length <= fftSize) reject(new Error("The sound is too short"));
-    else analyzePitch2Loop1(pitchState);
+    me.resolve = resolve;
+    for (var i = 0; i < me.workers.length; i++) {
+      // just do it like MPI
+      me.workers[i].postMessage({id: id, kind: "start"});
+    }
   });
-}
+};
+
+PitchDetector.prototype.abort = function () {
+  this.resolve = function () {};
+};
+
+PitchDetector.prototype.destroy = function () {
+  this.abort();
+  this.workers.forEach(function (x) {
+    x.terminate();
+  });
+};
 
 var StepTime = 0.01;
 var MinimumPitch = 70;
@@ -136,98 +156,60 @@ var VoicedUnvoicedCost = 0.14;
 var OctaveJumpCost = 0.35;
 var MaxCandidates = 15;
 
-function analyzePitch2Loop1(state) {
-  var i = state.pos;
-  var smpRate = state.smpRate;
-  var secs = state.secs;
-  var fftSize = state.fftSize;
-  var buf = state.buf;
-  showProgress("calculating pitch candidate at " + secs + "s");
-  var end = Math.min((secs+1) * smpRate, buf.length);
-  while (i + fftSize < end) {
-    var p = getSegmentCandidates(buf, i, fftSize, smpRate, state.volume);
-    state.candidates.push(p);
-    i = Math.floor(i + smpRate * StepTime);
+PitchDetector.prototype.distributeWork = function (e) {
+  var msg = e.data;
+  if (msg.id === this.msgId && msg.kind === "finish") {
+    for (var i = 0; i < msg.candidates.length; ++i) {
+      this.candidates.push(msg.candidates[i]);
+    }
+    this.finished++;
   }
-  state.pos = i;
-  state.secs++;
+  //console.log("finish", this.finished);
+  var i = this.pos;
+  var smpRate = this.smpRate;
+  var secs = this.secs;
+  var buf = this.buf;
+  if (this.finished > 0) {
+    this.showProgress(this.finished, buf.length / smpRate);
+  }
   if (i + fftSize >= buf.length) {
-    viterbiDecidePitch(state);
-    setTimeout(function () {
-      state.pitch.elapsedTime = new Date() - state.startTime;
-      state.resolve(state.pitch);
-    }, 30);
+    if (this.finished === secs) {
+      this.candidates.sort(function (a,b) {
+        if (a[0] > b[0]) return 1;
+        if (a[0] == b[0]) return 0;
+        return -1;
+      });
+      this.viterbiDecidePitch();
+      this.pitch.elapsedTime = new Date() - this.startTime;
+      this.resolve(this.pitch);
+    }
   }
   else {
-    setTimeout(analyzePitch2Loop1.bind(this, state), 30);
-  }
-}
-
-function getSegmentCandidates(buf, pos, size, smpRate, globalVol) {
-  var vol = 0;
-  // multiply with Hann window
-  var smp = new Float64Array(size * 2);
-  var sum = 0;
-  for (var i = 0; i < size; i++) {
-    sum += buf[pos+i];
-  }
-  sum /= size;
-  for (var i = 0; i < size; i++) {
-    smp[i] = buf[pos+i] - sum;
-  }
-  for (var i = 0; i < size; i++) {
-    var b = smp[i];
-    if (b > vol) vol = b;
-    if (-b > vol) vol = -b;
-    smp[i] = b * hannWindow[i];
-  }
-  goodFft.realFFT(smp, smp);
-  for (var i = 1; i < size; i++) {
-    var re = smp[i*2];
-    var im = smp[i*2+1];
-    smp[i*2] = re*re + im*im;
-    smp[i*2+1] = 0;
-  }
-  smp[1] = smp[1] * smp[1];
-  smp[0] = smp[0] * smp[0];
-  // corr[i*2] is autocorrelation
-  var corr = goodFft.realIFFT(smp, null);
-  var normalize = 1/corr[0];
-  for (var i = 0; i < size/2; i++) {
-    smp[i+500] = corr[i] * normalize / hannAuto[i];
-  }
-  for (var i = 1; i <= 500; i++) {
-    smp[500-i] = corr[i] * normalize / hannAuto[i];
-  }
-  var lim = smpRate/MinimumPitch | 0;
-  var silenceR = VoicingThreshold + Math.max(0,
-    2 - (vol/globalVol) / (SilenceThreshold/(1+VoicingThreshold)));
-  var candidates = [{frequency: 0, strength: silenceR}];
-  for (var i = 0; i < MaxCandidates; i++) {
-    candidates.push({frequency: 0, strength: 0});
-  }
-  for (var i = smpRate/MaximumPitch | 0; i < lim; i++) {
-    if (smp[499+i] > smp[500+i] || smp[500+i] < smp[501+i]) continue;
-    var r0 = smp[499+i];
-    var r = smp[500+i];
-    var r1 = smp[501+i];
-    var peak = r + (r0-r1) * (r0-r1) * 0.125 / (2*r - r0 - r1); 
-    var delta =  i + (r0 - r1) * 0.5 / (r0 + r1 - 2 * r);
-    var R = peak - OctaveCost * Math.log2(MinimumPitch/smpRate * delta);
-    var nn = MaxCandidates;
-    while (nn >= 0 && R > candidates[nn].strength) {
-      if (nn < MaxCandidates) candidates[nn+1] = candidates[nn];
-      nn--;
+    var end = Math.min((secs+1) * smpRate, buf.length);
+    while (i + fftSize < end) {
+      i = Math.floor(i + smpRate * StepTime);
     }
-    if (nn < MaxCandidates) {
-      candidates[nn+1] = {frequency: smpRate/delta, strength: R};
-    }
+    var slice = buf.slice(this.pos, i + fftSize);
+    e.target.postMessage({
+      id: this.msgId, kind: "compute",
+      secs: secs,
+      buf: slice,
+      smpRate: smpRate,
+      globalVol: this.volume,
+      pos: this.pos
+    }, [slice.buffer]);
+    this.pos = i;
+    this.secs++;
   }
-  return [(pos+fftSize/2) / smpRate, vol, candidates];
-}
+};
 
-function viterbiDecidePitch(state) {
+PitchDetector.prototype.viterbiDecidePitch = function () {
+  var state = this;
   var candidates = state.candidates;
+  if (candidates.length == 0) {
+    state.pitch = [];
+    return ;
+  }
   var cost = new Float64Array(candidates.length * (MaxCandidates + 1));
   var back = new Int32Array(candidates.length * (MaxCandidates + 1));
   for (var i = 0; i <= MaxCandidates; i++) {
@@ -287,4 +269,4 @@ function viterbiDecidePitch(state) {
     state.pitch.push(ans);
   }
   state.pitch.reverse();
-}
+};
