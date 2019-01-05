@@ -164,7 +164,6 @@ function toMonoBuffer(buf) {
   var n = buf.numberOfChannels;
   for (var i = 0; i < n; i++) {
     var ch = buf.getChannelData(i);
-    console.log(ch);
     for (var j = 0; j < ch.length; j++) {
       dat[j] += ch[j];
     }
@@ -385,4 +384,44 @@ function deleteSong() {
   else {
     alertBox("You cannot delete a built-in song");
   }
+}
+
+function processTieAndRest() {
+  var song = trackToJSON();
+  var bpm = song.bpm;
+  var lastNote = null;
+  var seq = [];
+  var pos = 0;
+  for (var i = 0; i < song.notes.length; i++) {
+    var note = song.notes[i];
+    var duration = 60 / bpm * note.beat;
+    if (note.type === "note") {
+      var segs = cachedFiles.get(note.clip).result.segments;
+      for (var j = 0; j < segs.length; j++) {
+        if (segs[j].name === note.segment) break;
+      }
+      lastNote = {
+        clip: note.clip,
+        start: segs[j].start,
+        end: segs[j].end,
+        pitch: [note.pitch],
+        pos: [duration],
+        time: pos,
+        duration: duration
+      };
+      seq.push(lastNote);
+    }
+    else if (note.type === "tied") {
+      if (lastNote) {
+        lastNote.pitch.push(note.pitch);
+        lastNote.pos.push(lastNote.duration + duration);
+        lastNote.duration += duration;
+      }
+    }
+    else {
+      lastNote = null;
+    }
+    pos += duration;
+  }
+  return seq;
 }
