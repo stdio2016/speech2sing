@@ -15,6 +15,7 @@ var selected = {start: 0.5, end: 1};
 var editingSegment = null;
 var segments = new Set();
 var divSegments = document.querySelector('.sound-clips');
+var pitchDetect = new PitchDetector();
 
 // for firefox only
 btnSave.disabled = true;
@@ -24,7 +25,6 @@ function addClipInterface(name) {
   name = name.name;
   var clip = new Option(name, "r_"+name);
   clips.appendChild(clip);
-  console.log("added " + name);
 }
 
 function startup() {
@@ -42,6 +42,8 @@ function startup() {
 
 function openClip() {
   resumeContext();
+  btnSave.disabled = true;
+  btnAddRange.disabled = true;
   var name = clips.value;
   if (name.substr(0,2) === "r_") {
     name = name.substr(2);
@@ -65,11 +67,18 @@ function openClip() {
     // zoom to fit
     zoomLevel = Math.log2(waveArray[0].length / canvas.width) | 0;
     btnAddRange.disabled = false;
-    btnSave.disabled = false;
+    pitchDetect.abort();
+    pitchDetect.showProgress = function (secs) {
+      lblStatus.textContent = "computing pitch at " + secs + "s";
+    };
+    pitchDetect.analyze(audioBuf.getChannelData(0), audioBuf.sampleRate).then(function (result) {
+      btnSave.disabled = false;
+      lblStatus.textContent = "";
+      soundFile.pitch = result.slice(0);
+    })['catch'](errorbox);
   }
   
   function decodeError(err) {
-    throw err;
     if (err.name == 'EncodingError') {
       alertBox("File is not an audio, or the format is not supported");
     }
@@ -112,7 +121,6 @@ function buildWaveArray() {
   for (var i = 0; i < arr.length; i++) {
     range = Math.max(range, Math.abs(arr[i]));
   }
-  console.log(range);
   yAxisZoom = Math.min(1 / range, 1000);
 }
 
@@ -294,7 +302,6 @@ function addSegmentInterface(range) {
   lbl.appendChild(btnDel);
   divSegments.appendChild(clip);
   segments.add(range);
-  console.log("added " + name);
 }
 
 function initInterface(segs) {

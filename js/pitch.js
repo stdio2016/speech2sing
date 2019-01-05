@@ -123,6 +123,9 @@ PitchDetector.prototype.analyze = function (buf, smpRate) {
   this.volume = vol;
   if (buf.length <= fftSize)
     return Promise.reject(new Error("The sound is too short"));
+
+  if (!(smpRate >= 8000))
+    return Promise.reject(new Error("The sample rate is too small"));
   var me = this;
   return new Promise(function (resolve, reject) {
     me.resolve = resolve;
