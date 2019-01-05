@@ -142,13 +142,13 @@ function addNoteInterface(before, setting) {
   btnDel.className = "red";
   btnDel.textContent = "Delete";
   btnDel.onclick = function () {
-    confirmBox("Really want to delete this note?", function (result) {
-      if (result) {
+    //confirmBox("Really want to delete this note?", function (result) {
+      //if (result) {
         note.remove();
         if (selClip.value.startsWith("c_"))
           unloadFileFromCache(selClip.value.substr(2));
-      }
-    });
+      //}
+    //});
   };
   lbl.appendChild(btnDel);
   
@@ -319,17 +319,51 @@ function initNotes(segs) {
   }
 }
 
+function getDefaultName() {
+  var now = new Date();
+  var y = now.getFullYear();
+  var M = ("0"+(now.getMonth()+1)).slice(-2);
+  var d = ("0"+now.getDate()).slice(-2);
+  var h = ("0"+now.getHours()).slice(-2);
+  var m = ("0"+now.getMinutes()).slice(-2);
+  var s = ("0"+now.getSeconds()).slice(-2);
+  return 'Song '+y+'-'+M+'-'+d+' '+h+'-'+m+'-'+s;
+}
+
 function saveSong() {
   var name = selSong.value;
+  var date = new Date();
   if (name === "new") {
-    name = "Song name";
+    name = getDefaultName();
   }
   else if (name.startsWith("c_")) {
     name = name.substr(2);
   }
-  var date = new Date();
   promptBox("Enter name of this song", name, function (name) {
     if (!name) return ;
     saveTrack(name, trackToJSON(), date);
+    for (var i = 0; i < selSong.length; i++) {
+      if (selSong[i].value === "c_"+name) break;
+    }
+    if (i >= selSong.length) {
+      selSong.add(new Option(name, "c_"+name, false, true));
+    }
   });
+}
+
+function deleteSong() {
+  if (selSong.value.startsWith("c_")) {
+    confirmBox("Do you really want to delete this song?", function (yesno) {
+      if (yesno) {
+        deleteTrack(selSong.value.substr(2));
+        selSong.selectedOptions[0].remove();
+        // select the first built-in song
+        selSong[0].selected = true;
+        loadSong();
+      }
+    });
+  }
+  else {
+    alertBox("You cannot delete a built-in song");
+  }
 }
