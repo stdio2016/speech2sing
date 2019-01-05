@@ -157,6 +157,24 @@ function addNoteInterface(before, setting) {
   divNotes.insertBefore(note, before);
 }
 
+function toMonoBuffer(buf) {
+  if (buf.numberOfChannels == 1) return buf;
+  var monobuf = audioCtx.createBuffer(1, buf.length, buf.sampleRate);
+  var dat = monobuf.getChannelData(0);
+  var n = buf.numberOfChannels;
+  for (var i = 0; i < n; i++) {
+    var ch = buf.getChannelData(i);
+    console.log(ch);
+    for (var j = 0; j < ch.length; j++) {
+      dat[j] += ch[j];
+    }
+  }
+  for (var j = 0; j < dat.length; j++) {
+    dat[j] = dat[j] / n;
+  }
+  return monobuf;
+}
+
 function loadFileIntoCache(name) {
   if (cachedFiles.has(name)) {
     var v = cachedFiles['get'](name);
@@ -189,7 +207,7 @@ function loadFileIntoCache(name) {
         fr.onload = function () {
           audioCtx.decodeAudioData(fr.result, function (buf) {
             v.finished = true;
-            v.result.buffer = buf;
+            v.result.buffer = toMonoBuffer(buf);
             console.log("loaded", name);
             v.waiting.forEach(function (e) { e.yes(result); });
             v.waiting = [];
@@ -197,6 +215,7 @@ function loadFileIntoCache(name) {
         };
         fr.onerror = fail;
         fr.readAsArrayBuffer(result.file);
+        result.file = null;
       })['catch'](fail);
     });
   }
