@@ -21,18 +21,29 @@ function startup() {
     console.error(x);
     alertbox('Cannot load sounds. You can try refreshing this page');
   });
+  
+  getTrackNames().then(function (names) {
+    names.forEach(function (dat) {
+      selSong.add(new Option(dat.name, "c_"+dat.name));
+    });
+    selSong.oninput = loadSong;
+  })['catch'](function (x) {
+    console.error(x);
+    alertbox('Cannot load tracks. You can try refreshing this page');
+  });
 }
 
 function createClipSelect(def) {
+  def = def || {};
   var sel = document.createElement("select");
   sel.id = "selClip_" + genId;
-  var choose = "";
-  if (def) choose = def.clip;
-  sel.add(new Option("rest", "rest", false, "rest" === choose));
-  sel.add(new Option("tied", "tied", false, "tied" === choose));
+  var choose = null;
+  if (def.type === "note") choose = def.clip;
+  sel.add(new Option("rest", "rest", false, "rest" === def.type));
+  sel.add(new Option("tied", "tied", false, "tied" === def.type));
   allSongs.forEach(function (s) {
-    var value = "c_" + s.name;
-    sel.add(new Option(s.name, value, false, value === choose));
+    var name = s.name;
+    sel.add(new Option(name, "c_"+name, false, name === choose));
   });
   return sel;
 }
@@ -87,7 +98,7 @@ function addNoteInterface(before, setting) {
     if (selClip.value.startsWith("c_")) {
       loadFileIntoCache(selClip.value.substr(2)).then(function (dat) {
         updateSegmentOption(selSegment, dat.segments);
-      }).catch(errorbox);
+      })['catch'](errorbox);
     }
     else {
       updateSegmentOption(selSegment, "-");
@@ -101,13 +112,30 @@ function addNoteInterface(before, setting) {
   updateSegmentOption(selSegment, "-");
   lbl.appendChild(new Text(" "));
   lbl.appendChild(selSegment);
+  if (oldClip.startsWith("c_")) {
+    loadFileIntoCache(oldClip.substr(2)).then(function (dat) {
+      updateSegmentOption(selSegment, dat.segments);
+      for (var i = 0; i < selSegment.length; i++) {
+        if (selSegment[i].value === setting.segment) {
+          selSegment[i].selected = true;
+          break;
+        }
+      }
+    })['catch'](errorbox);
+  }
   
   var selPitch = createPitchSelect(setting);
-  lbl.appendChild(new Text(" pitch: "));
+  var lblPitch = document.createElement("label");
+  lblPitch.textContent = " pitch: ";
+  lblPitch.htmlFor = selPitch.id;
+  lbl.appendChild(lblPitch);
   lbl.appendChild(selPitch);
   
   var selBeat = createBeatSelect(setting);
-  lbl.appendChild(new Text(" beat: "));
+  var lblBeat = document.createElement("label");
+  lblBeat.textContent = " beat: ";
+  lblBeat.htmlFor = selBeat.id;
+  lbl.appendChild(lblBeat);
   lbl.appendChild(selBeat);
   
   var btnDel = document.createElement("button");
@@ -127,7 +155,6 @@ function addNoteInterface(before, setting) {
   note.appendChild(lbl);
   if (!before) before = divNotes.lastElementChild;
   divNotes.insertBefore(note, before);
-  console.log("added " + name);
 }
 
 function loadFileIntoCache(name) {
@@ -170,7 +197,7 @@ function loadFileIntoCache(name) {
         };
         fr.onerror = fail;
         fr.readAsArrayBuffer(result.file);
-      }).catch(fail);
+      })['catch'](fail);
     });
   }
 }
@@ -209,6 +236,7 @@ function MyBadSynth() {
   var n = divNotes.children.length - 1;
   var pos = 0;
   var t = audioCtx.currentTime;
+  var bpm = +txtBpm.value;
   for (var i = 0; i < n; i++) {
     var ch = divNotes.children[i];
     var id = +ch.id.substr(5);
@@ -232,8 +260,76 @@ function MyBadSynth() {
       snd.loop = true;
       snd.connect(audioCtx.destination);
       snd.start(t + pos, start);
-      snd.stop(t + pos + beat * 60 / 120);
+      snd.stop(t + pos + beat * 60 / bpm);
     }
-    pos += beat * 60 / 120;
+    pos += beat * 60 / bpm;
   }
+}
+
+function trackToJSON() {
+  var n = divNotes.children.length - 1;
+  var pos = 0;
+  var arr = [];
+  for (var i = 0; i < n; i++) {
+    var ch = divNotes.children[i];
+    var id = +ch.id.substr(5);
+    var clip = document.getElementById("selClip_" + id).value;
+    var seg = document.getElementById("selSegment_" + id).value;
+    var pitch = +document.getElementById("selPitch_" + id).value;
+    var beat = +document.getElementById("selBeat_" + id).value;
+    if (clip.startsWith("c_")) {
+      arr.push({
+        type: "note",
+        clip: clip.substr(2),
+        segment: seg,
+        pitch: pitch,
+        beat: beat
+      });
+    }
+    else {
+      arr.push({type: clip, pitch: pitch, beat: beat});
+    }
+  }
+  return {
+    bpm: +txtBpm.value,
+    notes: arr
+  };
+}
+
+function loadSong() {
+  var name = selSong.value;
+  cachedFiles = new Map();
+  var n = divNotes.childNodes.length - 2;
+  for (var i = 0; i < n; i++) {
+    divNotes.removeChild(divNotes.firstChild);
+  }
+  if (name.startsWith("c_")) {
+    name = name.substr(2);
+    getTrack(name).then(function (data) {
+      var file = data.file;
+      txtBpm.value = file.bpm;
+      initNotes(file.notes);
+    })['catch'](errorbox);
+  }
+}
+
+function initNotes(segs) {
+  for (var i = 0; i < segs.length; i++) {
+    addNoteInterface(null, segs[i]);
+  }
+}
+
+function saveSong() {
+  var name = selSong.value;
+  if (name === "new") {
+    name = "Song name";
+  }
+  else if (name.startsWith("c_")) {
+    name = name.substr(2);
+  }
+  var date = new Date();
+  promptBox("Enter name of this song", name, function (name) {
+    if (!name) return ;
+    saveTrack(name, trackToJSON(), date);
+  });
 }

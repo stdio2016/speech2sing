@@ -51,14 +51,20 @@ This program does not support IE. Please use Firefox or Chrome.</pre>
   <!-- end of alert box -->
 
 <h1>Make song</h1>
-<p id=''>
+<p>
+Select a song: 
+<select id="selSong">
+  <option value="new">New...</option>
+</select>
+</p>
+<p>
   <span>Tempo: </span>
-  <input type="number" id="txtBpm" value="120" min="20" max="200" style="width:6em;">
+  <input type="number" id="txtBpm" value="120" min="20" max="300" style="width:6em;">
   bpm
 </p>
 <p>
   <button type="button" id="btnPlay" onclick="MyBadSynth()">Play</button>
-  <button type="button" id="btnSave">Save</button>
+  <button type="button" id="btnSave" onclick="saveSong()">Save</button>
 </p>
 <section class="sound-clips">
 <div class="clip">
