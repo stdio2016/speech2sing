@@ -427,6 +427,27 @@ function saveSegments() {
     if (a.first > b.first) return 1;
     return 0;
   });
+
+  // find vowels
+  segs.forEach(function (seg) {
+    var i, pitch;
+    for (i = 0; i < soundFile.pitch.length; i++) {
+      pitch = soundFile.pitch[i];
+      if (pitch[0] > seg.start) break;
+    }
+    seg.vowelStart = seg.end;
+    seg.vowelEnd = (seg.start + seg.end) / 2;
+    for (i = i; i < soundFile.pitch.length; i++) {
+      pitch = soundFile.pitch[i];
+      if (pitch[0] > seg.end) break;
+      if (pitch[1] > 0) {
+        seg.vowelEnd = pitch[0];
+        seg.vowelStart = Math.min(seg.vowelStart, pitch[0]);
+      }
+    }
+    seg.vowelStart = Math.min(seg.vowelStart, seg.vowelEnd);
+  });
+  
   soundFile.segments = segs;
   saveSoundAttribute(soundFile.name, soundFile.file, soundFile);
 }

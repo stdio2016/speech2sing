@@ -407,6 +407,8 @@ function processTieAndRest() {
       lastNote = {
         clip: note.clip,
         start: segs[j].start,
+        vowelStart: segs[j].vowelStart || segs[j].start,
+        vowelEnd: segs[j].vowelEnd || segs[j].end,
         end: segs[j].end,
         pitch: [note.pitch],
         pos: [duration],
@@ -468,7 +470,8 @@ function getPitchAtTime(pitches, times, t) {
 function dstTimeToSrcTime(t, note) {
   var srcDu = note.end - note.start;
   var vowel = note.vowelEnd - note.vowelStart;
-  if (note.duration * 2 < srcDu - vowel) {
+  var consonant = srcDu - vowel;
+  if (note.duration < consonant * 2) {
     // consonant too long
     return note.start + t / note.duration * srcDu;
   }
@@ -476,13 +479,13 @@ function dstTimeToSrcTime(t, note) {
     // begin consonant
     return note.start + t;
   }
-  if (note.end - t > note.vowelEnd) {
+  if (note.duration - t < note.end - note.vowelEnd) {
     // end consonant
-    return note.end - t;
+    return t - note.duration + note.end;
   }
   t = t - (note.vowelStart - note.start);
-  var denom = node.duration - (srcDu - vowel);
-  return note.vowelStart + t / denom * (vowel / srcDu);
+  var denom = note.duration - consonant;
+  return note.vowelStart + t / denom * vowel;
 }
 
 function synthSyllabus(note) {
@@ -500,7 +503,7 @@ function synthSyllabus(note) {
     var pitch = getPitchAtTime(note.pitch, note.pos, dstT);
     var delta = 1/MidiToHz(pitch);
     var pos = Math.floor(dstT * smpRate);
-    var srcT = dstT / note.duration * (note.end - note.start) + note.start;
+    var srcT = dstTimeToSrcTime(dstT, note);
     while (srcPos < frames.length-2 && frames[srcPos].end < srcT) {
       srcPos++;
     }
