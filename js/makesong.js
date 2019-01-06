@@ -465,23 +465,60 @@ function getPitchAtTime(pitches, times, t) {
   return pitches[i];
 }
 
+function dstTimeToSrcTime(t, note) {
+  var srcDu = note.end - note.start;
+  var vowel = note.vowelEnd - note.vowelStart;
+  if (note.duration * 2 < srcDu - vowel) {
+    // consonant too long
+    return note.start + t / note.duration * srcDu;
+  }
+  if (note.start + t < note.vowelStart) {
+    // begin consonant
+    return note.start + t;
+  }
+  if (note.end - t > note.vowelEnd) {
+    // end consonant
+    return note.end - t;
+  }
+  t = t - (note.vowelStart - note.start);
+  var denom = node.duration - (srcDu - vowel);
+  return note.vowelStart + t / denom * (vowel / srcDu);
+}
+
 function synthSyllabus(note) {
-  var src = cachedFiles.get(note.clip).result;
-  var smpRate = src.buffer.sampleRate;
+  var clip = cachedFiles.get(note.clip).result;
+  var smpRate = clip.buffer.sampleRate;
   var du = Math.floor(note.duration * smpRate);
   var aud = audioCtx.createBuffer(1, du, smpRate);
+  var src = clip.buffer.getChannelData(0);
   var dst = aud.getChannelData(0);
-  var frames = getSourceFrames(src.pitch, smpRate, note.start, note.end);
+  var frames = getSourceFrames(clip.pitch, smpRate, note.start, note.end);
+  var srcPos = 0;
   
   var dstT = 0;
   while (dstT < note.duration) {
     var pitch = getPitchAtTime(note.pitch, note.pos, dstT);
-    var delta = pitch > 0 ? 1 / MidiToHz(pitch) : Math.random() * 0.004 + 0.008;
+    var delta = 1/MidiToHz(pitch);
     var pos = Math.floor(dstT * smpRate);
-    if (pos < du) {
-      dst[pos] = 1;
+    var srcT = dstT / note.duration * (note.end - note.start) + note.start;
+    while (srcPos < frames.length-2 && frames[srcPos].end < srcT) {
+      srcPos++;
     }
-    dstT += delta;
+    // copy!
+    if (frames[srcPos].start < srcT) {
+      var start = Math.floor(frames[srcPos].start * smpRate);
+      var end = Math.floor(frames[srcPos+1].end * smpRate);
+      for (var i = 0; i < end - start; i++) {
+        if (pos+i > du || start+i > src.length) break;
+        var w = i / (end - start);
+        w = 0.5 - Math.cos(w * Math.PI * 2) * 0.5;
+        dst[pos+i] += src[start+i] * w;
+      }
+    }
+    if (frames[srcPos].pitch === 0)
+      dstT += Math.random() * 0.004 + 0.008;
+    else
+      dstT += delta;
   }
   return aud;
 }
