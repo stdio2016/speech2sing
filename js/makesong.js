@@ -529,11 +529,13 @@ function synthSyllabus(note) {
 function MyGoodSynth() {
   var notes = processTieAndRest();
   var bufs = notes.map(synthSyllabus);
-  var t = audioCtx.currentTime;
-  for (var i = 0; i < bufs.length; i++) {
-    var snd = audioCtx.createBufferSource();
-    snd.buffer = bufs[i];
-    snd.connect(audioCtx.destination);
-    snd.start(t + notes[i].time);
-  }
+  setTimeout(function () {
+    var t = audioCtx.currentTime;
+    for (var i = 0; i < bufs.length; i++) {
+      var snd = audioCtx.createBufferSource();
+      snd.buffer = bufs[i];
+      snd.connect(audioCtx.destination);
+      snd.start(t + notes[i].time);
+    }
+  }, 50);
 }
