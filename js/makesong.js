@@ -466,7 +466,7 @@ function getPitchAtTime(pitches, times, t) {
 }
 
 function synthSyllabus(note) {
-  var src = cachedFiles.get('googlehbd').result;
+  var src = cachedFiles.get(note.clip).result;
   var smpRate = src.buffer.sampleRate;
   var du = Math.floor(note.duration * smpRate);
   var aud = audioCtx.createBuffer(1, du, smpRate);
