@@ -52,6 +52,10 @@ function getPitchName(midi) {
   return PitchName[midi%12] + Math.floor(midi/12 - 1);
 }
 
+function MidiToHz(midi) {
+  return 440 * Math.pow(2, (midi-69)/12);
+}
+
 function createPitchSelect(def) {
   var sel = document.createElement("select");
   sel.id = "selPitch_" + genId;
@@ -424,4 +428,72 @@ function processTieAndRest() {
     pos += duration;
   }
   return seq;
+}
+
+function getSourceFrames(pitches, smpRate, start, end) {
+  var frames = [];
+  var i = 0;
+  var pos = start;
+  while (pos < end) {
+    for (i = i; i < pitches.length; i++) {
+      if (pitches[i][0] > pos) break;
+    }
+    var pitch = i > 0 ? pitches[i-1][1] : 0;
+    var delta = pitch > 0 ? 1/pitch : Math.random() * 0.004 + 0.008;
+    frames.push({pitch: pitch, start: pos, end: pos+delta});
+    pos += delta;
+  }
+  return frames;
+}
+
+function getPitchAtTime(pitches, times, t) {
+  var i;
+  for (i = 0; i < times.length; i++) {
+    if (times[i] > t) break;
+  }
+  if (i === times.length) return pitches[times.length-1];
+  var border = Math.min(0.05, (times[i] - (i>0 ? times[i-1] : 0)) / 3);
+  var r;
+  if (i > 0 && t - times[i-1] < border) {
+    r = (t - times[i-1]) / border * 0.5 + 0.5;
+    return (1-r) * pitches[i-1] + r * pitches[i];
+  }
+  else if (i < times.length-1 && times[i] - t < border) {
+    r = 0.5 - (times[i] - t) / border * 0.5;
+    return (1-r) * pitches[i] + r * pitches[i+1];
+  }
+  return pitches[i];
+}
+
+function synthSyllabus(note) {
+  var src = cachedFiles.get('googlehbd').result;
+  var smpRate = src.buffer.sampleRate;
+  var du = Math.floor(note.duration * smpRate);
+  var aud = audioCtx.createBuffer(1, du, smpRate);
+  var dst = aud.getChannelData(0);
+  var frames = getSourceFrames(src.pitch, smpRate, note.start, note.end);
+  
+  var dstT = 0;
+  while (dstT < note.duration) {
+    var pitch = getPitchAtTime(note.pitch, note.pos, dstT);
+    var delta = pitch > 0 ? 1 / MidiToHz(pitch) : Math.random() * 0.004 + 0.008;
+    var pos = Math.floor(dstT * smpRate);
+    if (pos < du) {
+      dst[pos] = 1;
+    }
+    dstT += delta;
+  }
+  return aud;
+}
+
+function MyGoodSynth() {
+  var notes = processTieAndRest();
+  var bufs = notes.map(synthSyllabus);
+  var t = audioCtx.currentTime;
+  for (var i = 0; i < bufs.length; i++) {
+    var snd = audioCtx.createBufferSource();
+    snd.buffer = bufs[i];
+    snd.connect(audioCtx.destination);
+    snd.start(t + notes[i].time);
+  }
 }
