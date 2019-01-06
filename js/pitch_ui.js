@@ -101,6 +101,14 @@ function analyzeFile(file) {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return nearestHarmonic(p, -2);});
       showProgress("playing harmonic effect");
     }
+    else if (selOutput.value === "helium") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p}, 1.6);
+      showProgress("change to helium voice");
+    }
+    else if (selOutput.value === "SF6") {
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p}, 1/1.6);
+      showProgress("change to sulfur hexafluoride voice");
+    }
     window.bb = {buffer: bb, pitch: ans};
   }
   function error(x) {
@@ -254,10 +262,10 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
     
     while (t < pitch[i+1][0]) {
       while (choose < t) choose += delta;
-      var from = (t-delta) * rate | 0;
-      var to = (t+delta) * rate | 0;
+      var from = (t-delta/formantShift) * rate | 0;
+      var to = (t+delta/formantShift) * rate | 0;
       for (var j = from; j < to; j++) {
-        var w = (j - t*rate) / (delta*rate);
+        var w = (j - t*rate) / (delta*rate) * formantShift;
         w = Math.cos(w * Math.PI) * 0.5 + 0.5;
         var pos = choose * rate + (j - from) * formantShift;
         if (pos < buf.length-1) {
