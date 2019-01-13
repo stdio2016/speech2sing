@@ -509,13 +509,25 @@ function synthSyllabus(note) {
     }
     // copy!
     if (frames[srcPos].start < srcT) {
+      var ratio = (srcT - frames[srcPos].start) / (frames[srcPos].end - frames[srcPos].start);
       var start = Math.floor(frames[srcPos].start * smpRate);
       var end = Math.floor(frames[srcPos+1].end * smpRate);
       for (var i = 0; i < end - start; i++) {
         if (pos+i > du || start+i > src.length) break;
         var w = i / (end - start);
         w = 0.5 - Math.cos(w * Math.PI * 2) * 0.5;
-        dst[pos+i] += src[start+i] * w;
+        dst[pos+i] += src[start+i] * w * ratio;
+      }
+      
+      if (srcPos > 0) {
+        start = Math.floor(frames[srcPos-1].start * smpRate);
+        end = Math.floor(frames[srcPos].end * smpRate);
+        for (var i = 0; i < end - start; i++) {
+          if (pos+i > du || start+i > src.length) break;
+          var w = i / (end - start);
+          w = 0.5 - Math.cos(w * Math.PI * 2) * 0.5;
+          dst[pos+i] += src[start+i] * w * (1-ratio);
+        }
       }
     }
     if (frames[srcPos].pitch === 0)
