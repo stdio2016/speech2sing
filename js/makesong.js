@@ -541,6 +541,7 @@ function synthSyllabus(note) {
 function MyGoodSynth() {
   var notes = processTieAndRest();
   var bufs = notes.map(synthSyllabus);
+  localStorage.volatileMus_play = +new Date();
   setTimeout(function () {
     var t = audioCtx.currentTime;
     for (var i = 0; i < bufs.length; i++) {
