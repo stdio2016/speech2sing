@@ -12,6 +12,7 @@ var BeatName = [
 // this cache has reference counting! use with caution
 var cachedFiles = new Map();
 var genId = 0;
+var soundNodes = new Set();
 
 function startup() {
   // on database initialize
@@ -79,6 +80,24 @@ function createBeatSelect(def) {
 }
 
 function addNoteInterface(before, setting) {
+  if (!before) before = divNotes.lastElementChild;
+  if (!setting && before.previousElementSibling) {
+    // default to last note
+    var id = +before.previousElementSibling.id.substr(5);
+    var clip = document.getElementById("selClip_" + id).value;
+    setting = {
+      type: "note",
+      segment: document.getElementById("selSegment_" + id).value,
+      pitch: +document.getElementById("selPitch_" + id).value,
+      beat: +document.getElementById("selBeat_" + id).value
+    };
+    if (clip.startsWith("c_")) {
+      setting.clip = clip.substring(2);
+    }
+    else {
+      setting.type = clip;
+    }
+  }
   genId++;
   var note = document.createElement("div");
   note.className = "clip";
@@ -157,7 +176,6 @@ function addNoteInterface(before, setting) {
   lbl.appendChild(btnDel);
   
   note.appendChild(lbl);
-  if (!before) before = divNotes.lastElementChild;
   divNotes.insertBefore(note, before);
 }
 
@@ -510,6 +528,7 @@ function synthSyllabus(note) {
     // copy!
     if (frames[srcPos].start < srcT) {
       var ratio = (srcT - frames[srcPos].start) / (frames[srcPos].end - frames[srcPos].start);
+      ratio = 0.5 - Math.cos(ratio * Math.PI) * 0.5;
       var start = Math.floor(frames[srcPos].start * smpRate);
       var end = Math.floor(frames[srcPos+1].end * smpRate);
       for (var i = 0; i < end - start; i++) {
@@ -539,6 +558,8 @@ function synthSyllabus(note) {
 }
 
 function MyGoodSynth() {
+  // to prevent overlapping sound
+  stopSound();
   var notes = processTieAndRest();
   var bufs = notes.map(synthSyllabus);
   localStorage.volatileMus_play = +new Date();
@@ -548,7 +569,18 @@ function MyGoodSynth() {
       var snd = audioCtx.createBufferSource();
       snd.buffer = bufs[i];
       snd.connect(audioCtx.destination);
+      soundNodes.add(snd);
+      snd.onended = function (e) {
+        soundNodes['delete'](e.target);
+      };
       snd.start(t + notes[i].time);
     }
   }, 50);
+}
+
+function stopSound() {
+  soundNodes.forEach(function (snd) {
+    snd.stop();
+  });
+  soundNodes.clear();
 }
