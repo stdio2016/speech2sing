@@ -232,6 +232,11 @@ function loadFileIntoCache(name) {
             console.log("loaded", name);
             v.waiting.forEach(function (e) { e.yes(result); });
             v.waiting = [];
+            var all = true;
+            cachedFiles.forEach(function (x) {
+              if (!x.finished) all = false;
+            });
+            if (all) btnPlay.disabled = false;
           }, fail);
         };
         fr.onerror = fail;
@@ -343,6 +348,7 @@ function loadSong() {
   for (var i = 0; i < n; i++) {
     divNotes.removeChild(divNotes.firstChild);
   }
+  btnPlay.disabled = true;
   if (name.startsWith("c_")) {
     name = name.substr(2);
     getTrack(name).then(function (data) {
