@@ -2,6 +2,8 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var divNotes = document.querySelector('.sound-clips');
 var allSongs = [];
 var PitchName = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+var MaximumInputPitch = 84;
+var MinimumInputPitch = 36;
 var BeatName = [
   [1/4, "16th"],
   [1/2, "eighth"], [3/4, "dotted eighth"],
@@ -62,7 +64,7 @@ function createPitchSelect(def) {
   sel.id = "selPitch_" + genId;
   var choose = 60;
   if (def) choose = def.pitch;
-  for (var mid = 38; mid <= 84; mid++) {
+  for (var mid = MinimumInputPitch; mid <= MaximumInputPitch; mid++) {
     sel.add(new Option(getPitchName(mid), mid, false, mid == choose))
   }
   return sel;

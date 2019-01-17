@@ -148,8 +148,8 @@ PitchDetector.prototype.destroy = function () {
 };
 
 var StepTime = 0.01;
-var MinimumPitch = 70;
-var MaximumPitch = 800;
+var MinimumPitch = 55 * Math.pow(2, 2.5/12);
+var MaximumPitch = 880 * Math.pow(2, 3.5/12);
 // parameter from Praat source code
 // https://github.com/praat/praat/blob/master/fon/Sound_to_Pitch.cpp#L566
 var OctaveCost = 0.01;
