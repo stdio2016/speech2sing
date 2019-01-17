@@ -568,13 +568,14 @@ function synthSyllabus(note) {
   return aud;
 }
 
+var playingCallbackId = 0;
 function MyGoodSynth() {
   // to prevent overlapping sound
   stopSound();
   var notes = processTieAndRest();
   var bufs = notes.map(synthSyllabus);
   localStorage.volatileMus_play = +new Date();
-  setTimeout(function () {
+  playingCallbackId = setTimeout(function () {
     var t = audioCtx.currentTime;
     for (var i = 0; i < bufs.length; i++) {
       var snd = audioCtx.createBufferSource();
@@ -590,6 +591,10 @@ function MyGoodSynth() {
 }
 
 function stopSound() {
+  if (playingCallbackId) {
+    clearTimeout(playingCallbackId);
+    playingCallbackId = 0;
+  }
   soundNodes.forEach(function (snd) {
     snd.stop();
   });
