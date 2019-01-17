@@ -534,25 +534,27 @@ function synthSyllabus(note) {
     // copy!
     if (frames[srcPos].start < srcT) {
       var ratio = (srcT - frames[srcPos].start) / (frames[srcPos].end - frames[srcPos].start);
-      var mix1 = Math.sin(ratio * Math.PI*0.5);
-      var mix2 = Math.cos(ratio * Math.PI*0.5);
+      var mix1 = ratio;
+      var mix2 = 1 - ratio;
       var start = Math.floor(frames[srcPos].start * smpRate);
       var end = Math.floor(frames[srcPos+1].end * smpRate);
+      var mid = Math.floor(frames[srcPos].end * smpRate) - start;
+      if (start >= mid && end - mid <= src.length && pos >= mid && pos + end - start - mid <= du)
       for (var i = 0; i < end - start; i++) {
-        if (pos+i > du || start+i > src.length) break;
         var w = i / (end - start);
         w = 0.5 - Math.cos(w * Math.PI * 2) * 0.5;
-        dst[pos+i] += src[start+i] * w * mix1;
+        dst[pos+i-mid] += src[start+i-mid] * w * mix1;
       }
       
-      if (srcPos > 0) {
+      if (srcPos > 1) {
         start = Math.floor(frames[srcPos-1].start * smpRate);
         end = Math.floor(frames[srcPos].end * smpRate);
+        mid = Math.floor(frames[srcPos-1].end * smpRate) - start;
+        if (start >= mid && end - mid <= src.length && pos >= mid && pos + end - start - mid <= du)
         for (var i = 0; i < end - start; i++) {
-          if (pos+i > du || start+i > src.length) break;
           var w = i / (end - start);
           w = 0.5 - Math.cos(w * Math.PI * 2) * 0.5;
-          dst[pos+i] += src[start+i] * w * mix2;
+          dst[pos+i-mid] += src[start+i-mid] * w * mix2;
         }
       }
     }
