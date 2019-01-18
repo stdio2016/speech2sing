@@ -1,4 +1,6 @@
 var fftSize = 2048;
+var PitchName = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
 function analyzePitch(buf, smpRate) {
   var i;
   var wind = new Float32Array(fftSize * 2);

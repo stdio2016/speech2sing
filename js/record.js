@@ -171,6 +171,7 @@ function visualize(source) {
 function showWave() {
   visualizeCallbackId = requestAnimationFrame(showWave);
   var len;
+  var hz = 0;
   if (!hasAnySound) {
     analyserRecord.getByteTimeDomainData(dataArray);
     len = dataArray.length;
@@ -192,6 +193,16 @@ function showWave() {
       }
     }
     realTimeAutocorrelation(dataArrayFloat[0], dataArray);
+    var min = audioCtx.sampleRate/MaximumPitch | 0;
+    var max = audioCtx.sampleRate/MinimumPitch | 0;
+    var good = 0.45;
+    for (var i = min; i < max; i++) {
+      var strength = (dataArray[i]-128)/128 - Math.log2(i) * OctaveCost;
+      if (strength > good) {
+        hz = audioCtx.sampleRate / i;
+        good = strength;
+      }
+    }
     len = dataArray.length;
   }
   else {
@@ -222,6 +233,14 @@ function showWave() {
     x += sliceWidth;
   }
   canvasCtx.stroke();
+  
+  if (hz > 0) {
+    canvasCtx.font = height/3 + "px aries";
+    canvasCtx.fillStyle = "red";
+    var pitch = Math.round(Math.log2(hz/440) * 12) + 57;
+    var msg = PitchName[pitch%12] + Math.floor(pitch/12);
+    canvasCtx.fillText(msg, width/2-10, height * (1/2 + 1/6*0.6));
+  }
 }
 
 function addClipInterface(nameAndDate) {
