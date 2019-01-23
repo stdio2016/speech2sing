@@ -451,3 +451,13 @@ function saveSegments() {
   soundFile.segments = segs;
   saveSoundAttribute(soundFile.name, soundFile.file, soundFile);
 }
+// hack to get data
+var game = {
+  destroy: function () {
+    var t = "";
+    segments.forEach(function (seg){
+      t += JSON.stringify(seg) + "\n";
+    });
+    alertBox(t);
+  }
+};
