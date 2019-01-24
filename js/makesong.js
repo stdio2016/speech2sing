@@ -468,7 +468,7 @@ function getSourceFrames(pitches, smpRate, start, end) {
     for (i = i; i < pitches.length; i++) {
       if (pitches[i][0] > pos) break;
     }
-    var pitch = i > 0 ? pitches[i-1][1] : 0;
+    var pitch = i < pitches.length ? pitches[i][1] : 0;
     var delta = pitch > 0 ? 1/pitch : Math.random() * 0.004 + 0.008;
     frames.push({pitch: pitch, start: pos, end: pos+delta});
     pos += delta;
