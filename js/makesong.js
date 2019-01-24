@@ -427,9 +427,11 @@ function processTieAndRest() {
     var duration = 60 / bpm * note.beat;
     if (note.type === "note") {
       var segs = cachedFiles.get(note.clip).result.segments;
+      if (!segs) return {failed: true, reason: note.clip + " does not have segments"};
       for (var j = 0; j < segs.length; j++) {
         if (segs[j].name === note.segment) break;
       }
+      if (j === segs.length) return {failed: true, reason: note.clip + "does not have segments"};
       lastNote = {
         clip: note.clip,
         start: segs[j].start,
@@ -573,6 +575,10 @@ function MyGoodSynth() {
   // to prevent overlapping sound
   stopSound();
   var notes = processTieAndRest();
+  if (notes.failed) {
+    alertBox(notes.reason);
+    return;
+  }
   var bufs = notes.map(synthSyllabus);
   localStorage.volatileMus_play = +new Date();
   playingCallbackId = setTimeout(function () {
