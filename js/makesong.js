@@ -29,7 +29,7 @@ function startup() {
     names.forEach(function (dat) {
       selSong.add(new Option(dat.name, "c_"+dat.name));
     });
-    selSong.oninput = loadSong;
+    selSong.onchange = loadSong;
   })['catch'](function (x) {
     console.error(x);
     alertbox('Cannot load tracks. You can try refreshing this page');
@@ -116,7 +116,7 @@ function addNoteInterface(before, setting) {
   
   var selClip = createClipSelect(setting);
   var oldClip = selClip.value;
-  selClip.oninput = function () {
+  selClip.onchange = function () {
     if (oldClip.startsWith("c_"))
       unloadFileFromCache(oldClip.substr(2));
     oldClip = selClip.value;
