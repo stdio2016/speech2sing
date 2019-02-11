@@ -34,3 +34,11 @@ if (audioLocked) {
     window.addEventListener('click', resumeContext); // for desktop
   });
 }
+
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    console.log('Registration succeeded. Scope is ' + reg.scope);
+  }).catch(function(x) {
+    console.log('Registration failed with ' + error);
+  });
+}

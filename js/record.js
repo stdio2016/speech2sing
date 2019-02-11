@@ -269,9 +269,19 @@ function addClipInterface(nameAndDate) {
       if (sessionStorage.speech2sing_prevBlobURL) {
         window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
       }
-      var audioURL = window.URL.createObjectURL(result.file);
-      audioElt.src = audioURL;
-      sessionStorage.speech2sing_prevBlobURL = audioURL;
+      if (db && navigator.serviceWorker) {
+        audioElt.src = 'idbSound/' + encodeURIComponent(name);
+      }
+      else {
+        try {
+          var audioURL = window.URL.createObjectURL(result.file);
+          audioElt.src = audioURL;
+          sessionStorage.speech2sing_prevBlobURL = audioURL;
+        }
+        catch (x) {
+          errorbox(x);
+        }
+      }
       audioElt.play();
     })['catch'](function (e) {
       errorbox(Error(e.target.error));

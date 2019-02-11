@@ -31,7 +31,9 @@ function getSoundDB() {
 }
 
 addEventListener('load', function () {
-  getSoundDB().then(startup);
+  getSoundDB().catch(function () {
+    alert("unable to get Indexed DB -- maybe you are in private browsing mode");
+  }).then(startup).catch(errorbox);
 });
 
 function addDateField(transaction) {
@@ -115,7 +117,7 @@ function getSound(name) {
   if (!db) {
     return new Promise(function (resolve, reject) {
       if (name in inMem_db) {
-        resolve(inMem_db[name]);
+        resolve({name: name, file: inMem_db[name]});
       }
       else reject(null);
     });
