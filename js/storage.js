@@ -2,8 +2,10 @@ var db = null;
 var inMem_db = {};
 var isIOS = /iP[ao]d|iPhone/.test(navigator.userAgent);
 
-window.addEventListener('load', function () {
-  try {
+function getSoundDB() {
+  if (db) return Promise.resolve(db);
+  return new Promise(function (resolve, reject) {
+    try {
     var dbreq = indexedDB.open("speech2sing_records", 4);
     dbreq.onupgradeneeded = function (event) {
       db = dbreq.result;
@@ -12,24 +14,24 @@ window.addEventListener('load', function () {
         var store = db.createObjectStore("sounds", {keyPath: "name"});
       }
       if (event.oldVersion < 2) addDateField(tran);
-      if (event.oldVersion < 3) speech2singDBV3(db, tran);
-      if (event.oldVersion < 4) {
-        db.createObjectStore("tracks", {keyPath: "name"});
-        db.createObjectStore("trackNames", {keyPath: "name"});
-      }
+      else if (event.oldVersion < 3) speech2singDBV3(db, tran);
+      else if (event.oldVersion < 4) speech2singDBV4(db, tran);
     };
     dbreq.onsuccess = function (event) {
       db = dbreq.result;
-      startup();
+      resolve(db);
     };
     dbreq.onerror = function (event) {
-      alert("unable to load sounds, maybe you are in private browsing mode");
-      startup();
+      reject(event);
     };
-  }
-  catch (w) {
-    alert(w);
-  }
+    } catch (w) {
+      reject(w);
+    }
+  });
+}
+
+addEventListener('load', function () {
+  getSoundDB().then(startup);
 });
 
 function addDateField(transaction) {
@@ -49,6 +51,7 @@ function addDateField(transaction) {
       }
       cur["continue"]();
     }
+    else speech2singDBV3(db, transaction);
   };
 }
 
@@ -62,7 +65,13 @@ function speech2singDBV3(db, transaction) {
       names.add({name: data.name, date: data.date});
       cur["continue"]();
     }
+    else speech2singDBV4(db, transaction);
   };
+}
+
+function speech2singDBV4() {
+  db.createObjectStore("tracks", {keyPath: "name"});
+  db.createObjectStore("trackNames", {keyPath: "name"});
 }
 
 function saveSound(name, file, now) {
