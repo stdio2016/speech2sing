@@ -35,3 +35,11 @@ self.addEventListener('fetch', function(event) {
     })
   );
 });
+
+addEventListener('install', function () {
+  skipWaiting();
+});
+
+addEventListener('activate', function (event) {
+  event.waitUntil(clients.claim());
+});
