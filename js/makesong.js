@@ -1,4 +1,3 @@
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var divNotes = document.querySelector('.sound-clips');
 var allSongs = [];
 var PitchName = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];

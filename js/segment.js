@@ -1,4 +1,3 @@
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('#selClips');
 var canvas = document.querySelector('#canvas');
 var soundBuffer = null;

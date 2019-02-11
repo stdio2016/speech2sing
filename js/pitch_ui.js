@@ -1,4 +1,3 @@
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var clips = document.querySelector('.sound-clips');
 function addClipInterface(name) {
   name = name.name;

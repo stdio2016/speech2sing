@@ -4,7 +4,6 @@ var btnStop = document.getElementById('btnStop');
 var canvas = document.querySelector('.visualizer');
 var audioStream;
 var mediaRecorder;
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var canvasCtx = canvas.getContext('2d');
 var analyserRecord = audioCtx.createAnalyser();
 var analyserPlay = audioCtx.createAnalyser();
@@ -219,6 +218,7 @@ function showWave() {
     canvasCtx.font = height/3 + "px aries";
     canvasCtx.fillStyle = "red";
     var msg = 'Warning! No sound';
+    if (audioLocked) msg = "Please click anywhere on the page";
     canvasCtx.fillText(msg, height/2, height * (1/2 + 1/6*0.6));
     return;
   }
