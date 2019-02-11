@@ -4,10 +4,16 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 var audioLocked = isIOS || isSafari;
 
-// Chrome learns the "bad" part of Safari!
-if (audioCtx && audioCtx.state === "suspended") {
-  audioLocked = true;
-}
+addEventListener('load', function () {
+  // Chrome learns the "bad" part of Safari!
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioLocked = true;
+  }
+  if (audioLocked) {
+    window.addEventListener('touchend', resumeContext); // for mobile
+    window.addEventListener('click', resumeContext); // for desktop
+  }
+});
 
 function resumeContext() {
   if (audioCtx && audioLocked) {
@@ -28,16 +34,12 @@ function resumeContext() {
   }
 }
 
-if (audioLocked) {
-  window.addEventListener('load', function () {
-    window.addEventListener('touchend', resumeContext); // for mobile
-    window.addEventListener('click', resumeContext); // for desktop
-  });
-}
-
+// get help from  https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register
+var hasServiceWorker = false;
 if (navigator.serviceWorker) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
     console.log('Registration succeeded. Scope is ' + reg.scope);
+    hasServiceWorker = true;
   }).catch(function(x) {
     console.log('Registration failed with ' + error);
   });

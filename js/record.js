@@ -269,7 +269,7 @@ function addClipInterface(nameAndDate) {
       if (sessionStorage.speech2sing_prevBlobURL) {
         window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
       }
-      if (db && navigator.serviceWorker) {
+      if (db && hasServiceWorker) {
         audioElt.src = 'idbSound/' + encodeURIComponent(name);
       }
       else {
