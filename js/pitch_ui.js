@@ -69,8 +69,10 @@ function analyzeFile(file) {
       humPitch(buflen, ans);
     }
     else if (selOutput.value === "resynth") {
-      simpleSynth(bb.getChannelData(0), ans, nearestPitch);
-      showProgress("playing sound in C major");
+      simpleSynth(bb.getChannelData(0), ans, function (p) {
+        return nearestPitch(p, +selKey.value);
+      });
+      showProgress("playing sound in " + selKey.selectedOptions[0].text);
     }
     else if (selOutput.value === "robotic") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p > 1000 ? p : 220;});
@@ -97,7 +99,7 @@ function analyzeFile(file) {
     }
     else if (selOutput.value === "harmonic") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {return p;});
-      simpleSynth(bb.getChannelData(0), ans, function (p) {return nearestHarmonic(p, -2);});
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return nearestHarmonic(p, -2, +selKey.value);});
       showProgress("playing harmonic effect");
     }
     else if (selOutput.value === "helium") {
@@ -205,9 +207,9 @@ function showPitch(ans, smpRate) {
 }
 
 // currently only supports C major
-function nearestPitch(hz) {
+function nearestPitch(hz, key) {
   if (hz > 4000) return hz;
-  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
+  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9 - key;
   var arr = [0, 2, 4, 5, 7, 9, 11];
   var octave = Math.round(n / 12);
   var dist = 999;
@@ -221,12 +223,12 @@ function nearestPitch(hz) {
       }
     }
   }
-  return 440 * Math.pow(2, (best-9) / 12);
+  return 440 * Math.pow(2, (best-9 + key) / 12);
 }
 
-function nearestHarmonic(hz, which) {
+function nearestHarmonic(hz, which, key) {
   if (hz > 4000) return hz;
-  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9;
+  var n = Math.log(hz / 440) / Math.log(2) * 12 + 9 - key;
   var arr = [0, 2, 4, 5, 7, 9, 11];
   var octave = Math.round(n / 12);
   var dist = 999;
