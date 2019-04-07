@@ -31,6 +31,9 @@ function getSoundDB() {
 }
 
 addEventListener('load', function () {
+  if (!window.errorbox) {
+    errorbox = function (){};
+  }
   getSoundDB().catch(function () {
     alert("unable to get Indexed DB -- maybe you are in private browsing mode");
   }).then(startup).catch(errorbox);

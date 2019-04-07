@@ -53,6 +53,6 @@ if (navigator.serviceWorker) {
       });
     }
   }).catch(function(x) {
-    console.log('Registration failed with ' + error);
+    console.log('Registration failed with ' + x);
   });
 }
