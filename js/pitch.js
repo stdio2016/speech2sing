@@ -92,10 +92,10 @@ buildHannWindow();
 var pitchDebug;
 
 var MaxThreadCount = navigator.hardwareConcurrency || 1;
-if (isIOS) MaxThreadCount = 2;
+if (isIOS && !navigator.hardwareConcurrency) MaxThreadCount = 2;
 function PitchDetector() {
   this.workers = [];
-  var goodThread = Math.max(MaxThreadCount, 1);
+  var goodThread = Math.min(Math.max(MaxThreadCount, 1), 8);
   //goodThread = 1;
   for (var i = 0; i < goodThread; i++) {
     this.workers.push(new Worker("js/pitchworker.js"));
