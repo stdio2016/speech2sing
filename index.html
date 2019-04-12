@@ -26,14 +26,19 @@
   </p>
 <script>
 function sendToServiceWorker(cmd) {
-  return fetch(cmd).then(function (ret) {
-    return ret.text();
-  }).then(function (txt) {
-    if (txt === 'ok') return alert('ok'), true;
-    else alert('fail ;-(');
-  })['catch'](function () {
-    alert('service worker might be broken');
-  });
+  try {
+    return fetch(cmd).then(function (ret) {
+      return ret.text();
+    }).then(function (txt) {
+      if (txt === 'ok') return alert('ok'), true;
+      else alert('fail ;-(');
+    })['catch'](function () {
+      alert('service worker might be broken');
+    });
+  }
+  catch (c) {
+    alert('your browser is too old!');
+  }
 }
 
 btnUpdateCache.onclick = function () {
