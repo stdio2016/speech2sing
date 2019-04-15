@@ -76,6 +76,37 @@ function realTimeAutocorrelation(current, output) {
   }
 }
 
+function realTimeCepstrum(current, output) {
+  var size = current.length;
+  var total = new Float64Array(size);
+  for (var i = 0; i < size; i++) {
+    total[i] = current[i];
+  }
+  ac = goodFft.realFFT(total, total);
+  for (var i = 1; i < size; i++) {
+    var re = total[i*2];
+    var im = total[i*2+1];
+    ac[i*2] = Math.log(re*re + im*im + 1e-8);
+    ac[i*2+1] = 0;
+  }
+  ac[1] = Math.log(total[1] * total[1] + 1e-8);
+  ac[0] = Math.log(total[0] * total[0] + 1e-8);
+  total = goodFft.realIFFT(ac, ac);
+  var dB = 10 / Math.log(10);
+  var offset = Math.log(size) * 2;
+  // normalize
+  var max = 500, min = -500;
+  for (var i = 0; i < size; i++) {
+    var re = total[i];
+    total[i] = re * dB;
+  }
+  for (var i = 0; i < size; i++) {
+    var re = total[i];
+    var out = (re - min) / (max - min) * 255;
+    output[i] = Math.min(Math.max(out, 0), 255);
+  }
+}
+
 var hannWindow, hannAuto;
 function buildHannWindow() {
   hannWindow = new Float64Array(fftSize);

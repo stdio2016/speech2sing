@@ -182,7 +182,7 @@ function showWave() {
     analyser.getByteFrequencyData(dataArray);
     len = analyser.frequencyBinCount * (5000 * 2 / audioCtx.sampleRate);
   }
-  else if (timeOrFreq.value == 'autocorrelation') {
+  else if (timeOrFreq.value == 'autocorrelation' || timeOrFreq.value == 'cepstrum') {
     if (analyser.getFloatTimeDomainData)
       analyser.getFloatTimeDomainData(dataArrayFloat[0]);
     else {
@@ -191,7 +191,10 @@ function showWave() {
         dataArrayFloat[0][i] = (dataArray[i] - 127.5) / 128;
       }
     }
-    realTimeAutocorrelation(dataArrayFloat[0], dataArray);
+    if (timeOrFreq.value == 'autocorrelation')
+      realTimeAutocorrelation(dataArrayFloat[0], dataArray);
+    else
+      realTimeCepstrum(dataArrayFloat[0], dataArray);
     var min = audioCtx.sampleRate/MaximumPitch | 0;
     var max = audioCtx.sampleRate/MinimumPitch | 0;
     var good = 0.45;
