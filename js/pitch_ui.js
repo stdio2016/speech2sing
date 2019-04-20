@@ -68,6 +68,10 @@ function analyzeFile(file) {
     if (selOutput.value === "hum") {
       humPitch(buflen, ans);
     }
+    else if (selOutput.value === "noEffect") {
+      bypassAllEffects(bb);
+      showProgress("playing original sound");
+    }
     else if (selOutput.value === "resynth") {
       simpleSynth(bb.getChannelData(0), ans, function (p) {
         return nearestPitch(p, +selKey.value);
@@ -75,7 +79,7 @@ function analyzeFile(file) {
       showProgress("playing sound in " + selKey.selectedOptions[0].text);
     }
     else if (selOutput.value === "robotic") {
-      simpleSynth(bb.getChannelData(0), ans, function (p) {return p > 1000 ? p : 220;});
+      simpleSynth(bb.getChannelData(0), ans, function (p) {return p > 1000 ? p : 174.61;});
       showProgress("playing robotic voice");
     }
     else if (selOutput.value === "highVoice") {
@@ -98,8 +102,15 @@ function analyzeFile(file) {
       showProgress("change to male voice");
     }
     else if (selOutput.value === "harmonic") {
-      simpleSynth(bb.getChannelData(0), ans, function (p) {return p;});
-      simpleSynth(bb.getChannelData(0), ans, function (p) {return nearestHarmonic(p, -2, +selKey.value);});
+      var a1 = simpleSynth(bb.getChannelData(0), ans, function (p) {
+        return p;
+      }, 1, true);
+      var a2 = simpleSynth(bb.getChannelData(0), ans, function (p) {
+        return nearestHarmonic(p, -2, +selKey.value);
+      }, 1, true);
+      var t = audioCtx.currentTime;
+      a1.start(t);
+      a2.start(t);
       showProgress("playing harmonic effect");
     }
     else if (selOutput.value === "helium") {
@@ -250,7 +261,7 @@ function nearestHarmonic(hz, which, key) {
 }
 
 // I ask Web Audio API to do overlap and add for me! XD
-function simpleSynth(buf, pitch, pitchFun, formantShift) {
+function simpleSynth(buf, pitch, pitchFun, formantShift, dontStart) {
   formantShift = formantShift || 1.0;
   var rate = audioCtx.sampleRate;
   var start = audioCtx.currentTime;
@@ -290,7 +301,18 @@ function simpleSynth(buf, pitch, pitchFun, formantShift) {
   n.onended = function () {
     showProgress("finished");
   };
-  n.start(start);
+  if (!dontStart) n.start(start);
+  return n;
+}
+
+function bypassAllEffects(audio) {
+  var n = audioCtx.createBufferSource();
+  n.connect(audioCtx.destination);
+  n.buffer = audio;
+  n.onended = function () {
+    showProgress("finished");
+  };
+  n.start();
 }
 
 function showProgress(text) {
