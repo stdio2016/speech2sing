@@ -491,7 +491,9 @@ function getPitchAtTime(pitches, times, t) {
     r = 0.5 - (times[i] - t) / border * 0.5;
     return (1-r) * pitches[i] + r * pitches[i+1];
   }
-  return pitches[i];
+  var mod = Math.sin(t * 11.3) * 0.1 + Math.sin(t * 22.7 + 2) * 0.1
+    + Math.sin(t * 31.3 - 3) * 0.1 + Math.sin(t * 40.1 + 5) * 0.1;
+  return pitches[i] + mod;
 }
 
 function dstTimeToSrcTime(t, note) {
@@ -515,7 +517,7 @@ function dstTimeToSrcTime(t, note) {
   return note.vowelStart + t / denom * vowel;
 }
 
-function synthSyllabus(note) {
+function synthSyllabus(note, i, notes) {
   var clip = cachedFiles.get(note.clip).result;
   var smpRate = clip.buffer.sampleRate;
   var du = Math.floor(note.duration * smpRate);
@@ -526,8 +528,18 @@ function synthSyllabus(note) {
   var srcPos = 0;
   
   var dstT = 0;
+  var prev = notes[i-1] ? notes[i-1] : note;
+  if (Math.abs(prev.time + prev.duration - note.time) > 0.01) prev = note;
+  var prevPitch = prev.pitch[prev.pitch.length - 1];
+  var next = notes[i+1] ? notes[i+1] : note;
+  if (Math.abs(next.time - note.duration + note.time) > 0.01) next = note;
+  var nextPitch = next.pitch[0];
   while (dstT < note.duration) {
     var pitch = getPitchAtTime(note.pitch, note.pos, dstT);
+    // connect to previous note
+    if (dstT < 0.1) pitch = (prevPitch * (0.1 - dstT) + pitch * (0.05 + dstT)) / 0.15;
+    var toLast = note.duration - dstT;
+    if (toLast < 0.05) pitch = (nextPitch * (0.05 - toLast) + pitch * (0.1 + toLast)) / 0.15;
     var delta = 1/MidiToHz(pitch);
     var pos = Math.floor(dstT * smpRate);
     var srcT = dstTimeToSrcTime(dstT, note);
