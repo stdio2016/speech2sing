@@ -299,11 +299,16 @@ function MyBadSynth() {
       }
       var start = segs[j].start;
       var end = segs[j].end;
+      var p = f.pitch.filter(function (x) {
+        return x[0] >= start && x[0] <= end && x[1] > 0;
+      });
+      var hz = p.reduce(function (a, b) { return a+b[1]; }, 0) / p.length;
       var snd = audioCtx.createBufferSource();
       snd.buffer = f.buffer;
       snd.loopStart = start;
       snd.loopEnd = end;
       snd.loop = true;
+      snd.playbackRate.value = MidiToHz(pitch) / hz || 1;
       snd.connect(audioCtx.destination);
       snd.start(t + pos, start);
       snd.stop(t + pos + beat * 60 / bpm);
