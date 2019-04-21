@@ -533,13 +533,14 @@ function synthSyllabus(note, i, notes) {
   var prevPitch = prev.pitch[prev.pitch.length - 1];
   var next = notes[i+1] ? notes[i+1] : note;
   if (Math.abs(next.time - note.duration + note.time) > 0.01) next = note;
+  var border = Math.min(0.05, note.duration / 6);
   var nextPitch = next.pitch[0];
   while (dstT < note.duration) {
     var pitch = getPitchAtTime(note.pitch, note.pos, dstT);
     // connect to previous note
-    if (dstT < 0.1) pitch = (prevPitch * (0.1 - dstT) + pitch * (0.05 + dstT)) / 0.15;
+    if (dstT < border*2) pitch = (prevPitch * (border*2 - dstT) + pitch * (border + dstT)) / (border*3);
     var toLast = note.duration - dstT;
-    if (toLast < 0.05) pitch = (nextPitch * (0.05 - toLast) + pitch * (0.1 + toLast)) / 0.15;
+    if (toLast < border) pitch = (nextPitch * (border - toLast) + pitch * (border*2 + toLast)) / (border*3);
     var delta = 1/MidiToHz(pitch);
     var pos = Math.floor(dstT * smpRate);
     var srcT = dstTimeToSrcTime(dstT, note);
