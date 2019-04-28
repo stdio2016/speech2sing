@@ -422,7 +422,10 @@ function deleteSong() {
 
 function processTieAndRest() {
   var song = trackToJSON();
-  var bpm = song.bpm;
+  var bpm = +song.bpm;
+  if (bpm < 20 || bpm > 500 || bpm != bpm) {
+     return {failed: true, reason: "tempo must be between 20 and 500"};
+  }
   var lastNote = null;
   var seq = [];
   var pos = 0;
