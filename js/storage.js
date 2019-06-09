@@ -249,7 +249,14 @@ function renameSound(oldName, newName) {
       var req = s2.get(oldName);
       req.onsuccess = yes;
     });
-    Promise.all([p1, p2]).then(function (all) {
+    var p3 = new Promise(function (yes, no) {
+      var req = s2.get(newName);
+      req.onsuccess = yes;
+    });
+    Promise.all([p1, p2, p3]).then(function (all) {
+      if (all[2].target.result) {
+        return Promise.reject("name collision");
+      }
       s['delete'](oldName);
       s2['delete'](oldName);
       var dat = all[0].target.result;

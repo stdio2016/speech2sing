@@ -78,26 +78,27 @@ function stopRecordFinally() {
     mime = "audio/ogg; codecs=opus";
   }
   blob = new Blob(chunks, { 'type' : mime });
-  var name = prompt("Enter name for this sound", getDefaultName());
-  chunks = [];
-  if (name) {
-    var now = new Date();
-    saveSound(name, blob, now).then(function (e) {
-      console.log("saved successfully", e);
-    })['catch'](function(e) {
-      errorbox(Error(e));
-    });
-    addClipInterface({name: name, date: now});
-  }
-  // XXX: looks like Safari doesn't like reusing media stream
-  if (isIOS || isSafari) {
-    audioStreamNode.disconnect();
-    audioStreamNode = null;
-    tryToGetRecorder();
-  }
-  else {
-    btnRecord.disabled = false;
-  }
+  promptBox("Enter name for this sound", getDefaultName(), function (name) {
+    chunks = [];
+    if (name) {
+      var now = new Date();
+      saveSound(name, blob, now).then(function (e) {
+        console.log("saved successfully", e);
+      })['catch'](function(e) {
+        errorbox(Error(e));
+      });
+      addClipInterface({name: name, date: now});
+    }
+    // XXX: looks like Safari doesn't like reusing media stream
+    if (isIOS || isSafari) {
+      audioStreamNode.disconnect();
+      audioStreamNode = null;
+      tryToGetRecorder();
+    }
+    else {
+      btnRecord.disabled = false;
+    }
+  });
 }
 
 function tryToGetRecorder() {
@@ -298,8 +299,8 @@ function addClipInterface(nameAndDate) {
       renameSound(name, newName).then(function () {
         lblName.textContent = newName;
         name = newName;
-      }).catch(function () {
-        alertBox("Unable to rename");
+      }).catch(function (x) {
+        alertBox("Unable to rename: " + x);
       });
     });
   };
@@ -308,17 +309,19 @@ function addClipInterface(nameAndDate) {
   btnDel.className = "red";
   btnDel.textContent = "Delete";
   btnDel.onclick = function () {
-    if (!confirm("Really want to delete this sound?")) return ;
-    deleteSound(name).then(function (e) {
-      console.log("deleted successfully", e);
+    confirmBox("Really want to delete \"" + name + "\"?", function (yes) {
+      if (!yes) return;
+      deleteSound(name).then(function (e) {
+        console.log("deleted successfully", e);
+      });
+      // prevent memory leak
+      if (sessionStorage.speech2sing_prevBlobURL === audioElt.src) {
+        window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
+        sessionStorage.removeItem("speech2sing_prevBlobURL");
+      }
+      clip.remove();
+      files['f'+name] = 0;
     });
-    // prevent memory leak
-    if (sessionStorage.speech2sing_prevBlobURL === audioElt.src) {
-      window.URL.revokeObjectURL(sessionStorage.speech2sing_prevBlobURL);
-      sessionStorage.removeItem("speech2sing_prevBlobURL");
-    }
-    clip.remove();
-    files['f'+name] = 0;
   };
   clip.appendChild(lbl);
   lbl.appendChild(btnPlay);

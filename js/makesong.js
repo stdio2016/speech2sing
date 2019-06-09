@@ -405,9 +405,10 @@ function saveSong() {
 
 function deleteSong() {
   if (selSong.value.startsWith("c_")) {
-    confirmBox("Do you really want to delete this song?", function (yesno) {
+    var name = selSong.value.substring(2);
+    confirmBox("Do you really want to delete \"" + name + "\"?", function (yesno) {
       if (yesno) {
-        deleteTrack(selSong.value.substr(2));
+        deleteTrack(name);
         selSong.selectedOptions[0].remove();
         // select the first built-in song
         selSong[0].selected = true;
