@@ -4,7 +4,7 @@ myPath = myPath.match(/(.*\/)/)[1];
 const IdbFolder = "idbSound/";
 const CacheFolder = 'cacheControl/';
 const AppName = 'speech2sing';
-const Version = 'v1.0';
+const Version = 'v1.0.1';
 const CacheName = AppName + '-' + Version;
 const AppFiles = [
   '.',
@@ -97,6 +97,7 @@ function TryReadFromCache(req) {
 
 addEventListener('install', function (event) {
   skipWaiting();
+  console.log("update or install files");
   event.waitUntil(addFiles());
 });
 
