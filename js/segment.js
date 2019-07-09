@@ -61,6 +61,7 @@ function openClip() {
   }
 
   function decodeSuccess(audioBuf) {
+    stopSound();
     soundBuffer = audioBuf;
     buildWaveArray();
     // zoom to fit
@@ -219,10 +220,7 @@ function zoomOut() {
 }
 function playRange(from, duration) {
   if (!soundBuffer || duration <= 0) return ;
-  if (playingSound) {
-    playingSound.onended = function () {};
-    playingSound.stop();
-  }
+  stopSound();
   fixZoomRange();
   var node = audioCtx.createBufferSource();
   node.buffer = soundBuffer;
@@ -237,9 +235,25 @@ function playRange(from, duration) {
   };
 }
 
+function stopSound() {
+  if (playingSound) {
+    playingSound.onended = function () {};
+    try {
+      playingSound.stop();
+    }
+    catch (x) {
+      console.error(x);
+    }
+    finally {
+      playingSound = null;
+    }
+  }
+}
+
 function playSelected() {
   if (selected) playRange(selected.start, selected.end - selected.start);
 }
+
 function playVisible() {
   if (!soundBuffer) return ;
   var unit = Math.pow(2, zoomLevel+1) / soundBuffer.sampleRate;
