@@ -29,6 +29,8 @@ var finalOSC, OSCacf;
 var scrollAmount = 40;
 var zoomOut = 4;
 var scale, scaleAcf;
+var currentSound = null;
+var bpm = 0;
 
 function showStatus(txt) {
   lblStatus.textContent = txt;
@@ -158,20 +160,17 @@ function loadedAudio(buf) {
       sndbuf[i] /= chn;
     }
     sndbuf8192 = myResample(sndbuf, buf.sampleRate, 8192);
-    var nn = audioCtx.createBuffer(1, sndbuf8192.length, 8192);
-    var ch0 = nn.getChannelData(0);
-    for (var i = 0; i < sndbuf8192.length; i++) ch0[i] = sndbuf8192[i];
-    var snd = audioCtx.createBufferSource();
-    snd.buffer = nn;
-    snd.connect(audioCtx.destination);
-    snd.start();
     showStatus("calculating spectrogram");
     setTimeout(toSpectrogram, 100);
   }
   
   function toSpectrogram() {
     spectrogram = getSpectrogram(sndbuf8192, 256, 32);
-    showStatus("spectrogram finished");
+    showStatus("calculating OSC");
+    setTimeout(toOSC, 100);
+  }
+  
+  function toOSC() {
     scrTime.max = Math.max(0, Math.floor((spectrogram.length / 256 - 300) / scrollAmount) + 1);
     OSC = computeOSC(spectrogram, 256);
     smoothOSC = gaussFilter(OSC, 50, 1);
@@ -190,6 +189,40 @@ function loadedAudio(buf) {
       scaleAcf = Math.max(scaleAcf, OSCacf[i]);
     }
     drawSpectrogram();
+    showStatus("OSC finished");
+    setTimeout(toBPM, 100);
+  }
+  
+  function toBPM() {
+    var sec = 8192 / 32;
+    var periodMin = Math.floor(60 / 250 * sec);
+    var periodMax = Math.ceil(60 / 50 * sec);
+    console.log(periodMax, periodMin);
+    var best = periodMin;
+    for (var i = periodMin; i < periodMax; i++) {
+      if (OSCacf[i] > OSCacf[best]
+        // local maximum
+        && OSCacf[i] > OSCacf[i+1] && OSCacf[i] > OSCacf[i-1]) {
+        best = i;
+      }
+    }
+    bpm = (60 * sec) / best;
+    showStatus("bpm is " + Math.round(bpm));
+    toPlaySound();
+  }
+  
+  function toPlaySound() {
+    var nn = audioCtx.createBuffer(1, sndbuf8192.length, 8192);
+    var ch0 = nn.getChannelData(0);
+    for (var i = 0; i < sndbuf8192.length; i++) ch0[i] = sndbuf8192[i];
+    if (currentSound) {
+      currentSound.stop();
+    }
+    var snd = audioCtx.createBufferSource();
+    snd.buffer = nn;
+    snd.connect(audioCtx.destination);
+    snd.start();
+    currentSound = snd;
   }
 }
 
