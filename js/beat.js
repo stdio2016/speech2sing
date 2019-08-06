@@ -1,4 +1,9 @@
 var clips;
+var osc = audioCtx.createOscillator();
+osc.frequency.value = 440;
+osc.type = 'square';
+osc.start();
+
 function addClipInterface(name) {
   name = name.name;
   var clip = new Option(name, "r_"+name);
@@ -30,7 +35,9 @@ var scrollAmount = 40;
 var zoomOut = 4;
 var scale, scaleAcf;
 var currentSound = null;
+var currentBeat = null;
 var bpm = 0;
+var beatStart = 0;
 
 function showStatus(txt) {
   lblStatus.textContent = txt;
@@ -198,9 +205,9 @@ function loadedAudio(buf) {
     var periodMin = Math.floor(60 / 250 * sec);
     var periodMax = Math.ceil(60 / 50 * sec);
     console.log(periodMax, periodMin);
-    var best = periodMin;
+    var best = -1;
     for (var i = periodMin; i < periodMax; i++) {
-      if (OSCacf[i] > OSCacf[best]
+      if ((best == -1 || OSCacf[i] > OSCacf[best])
         // local maximum
         && OSCacf[i] > OSCacf[i+1] && OSCacf[i] > OSCacf[i-1]) {
         best = i;
@@ -208,6 +215,16 @@ function loadedAudio(buf) {
     }
     bpm = (60 * sec) / best;
     showStatus("bpm is " + Math.round(bpm));
+    // very bad beat tracking, sorry
+    var candPos = new Float64Array(best);
+    for (var i = 0; i < OSC.length; i++) {
+      candPos[i % best] += OSC[i];
+    }
+    var pos = 0;
+    for (var i = 1; i < best; i++) {
+      if (candPos[i] > candPos[pos]) pos = i;
+    }
+    beatStart = pos / sec;
     toPlaySound();
   }
   
@@ -218,11 +235,29 @@ function loadedAudio(buf) {
     if (currentSound) {
       currentSound.stop();
     }
+    if (currentBeat) {
+      currentBeat.disconnect();
+      osc.disconnect();
+    }
     var snd = audioCtx.createBufferSource();
     snd.buffer = nn;
     snd.connect(audioCtx.destination);
     snd.start();
     currentSound = snd;
+    currentBeat = audioCtx.createGain();
+    currentBeat.gain.value = 0;
+    osc.connect(currentBeat);
+    currentBeat.connect(audioCtx.destination);
+
+    var t = beatStart;
+    var t0 = audioCtx.currentTime;
+    while (t < nn.duration) {
+      // very bad beat tracking, sorry
+      currentBeat.gain.setValueAtTime(0.03, t0 + t);
+      currentBeat.gain.setValueAtTime(0, t0 + t + 0.1);
+      t += 60 / bpm;
+    }
+    currentBeat.connect(audioCtx.destination);
   }
 }
 
