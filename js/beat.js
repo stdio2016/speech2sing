@@ -229,9 +229,9 @@ function loadedAudio(buf) {
   }
   
   function toPlaySound() {
-    var nn = audioCtx.createBuffer(1, sndbuf8192.length, 8192);
+    var nn = audioCtx.createBuffer(1, sndbuf.length, audioCtx.sampleRate);
     var ch0 = nn.getChannelData(0);
-    for (var i = 0; i < sndbuf8192.length; i++) ch0[i] = sndbuf8192[i];
+    for (var i = 0; i < sndbuf.length; i++) ch0[i] = sndbuf[i];
     if (currentSound) {
       currentSound.stop();
     }
@@ -270,7 +270,7 @@ function myResample(buf, smprate, target) {
   var fft = new stdio2018.FFT(fftsize);
   var freq = new Float64Array(fftsize);
   for (var i = 0; i < n; i++) freq[i] = buf[i];
-  freq = fft.realFFT(freq, freq);
+  /*freq = fft.realFFT(freq, freq);
   // remove high frequency part
   var low = Math.floor(target / smprate * fftsize / 2) * 2;
   freq[1] = 0;
@@ -282,7 +282,7 @@ function myResample(buf, smprate, target) {
   // scale value
   for (var i = 0; i < fftsize; i++) {
     freq[i] /= fftsize;
-  }
+  }*/
   // linear resample
   fft = null;
   var newn = Math.floor(n * target / smprate);
