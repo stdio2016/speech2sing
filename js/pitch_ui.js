@@ -1,4 +1,5 @@
 var clips = document.querySelector('.sound-clips');
+var spectrMove = 0;
 function addClipInterface(name) {
   name = name.name;
   var clip = new Option(name, "r_"+name);
@@ -53,6 +54,7 @@ function analyzeFile(file) {
     var buf = audioBuf.getChannelData(0);
     buflen = buf.length;
     bb = audioBuf;
+    spectrMove = 0;
     showSpectrum(buf, audioCtx.sampleRate);
     detector = new PitchDetector();
     detector.showProgress = function (prog, total) {
@@ -182,19 +184,25 @@ function showSpectrum(buf, smpRate) {
   spectrum.width = w;
   var bmp = ctx.getImageData(0, 0, w, h);
   for (x = 0; x < w; x++) {
-    if ((x+1)*fftSize > buf.length) break;
+    var idx = (x+spectrMove)*fftSize;
+    if (idx+fftSize > buf.length) break;
     for (j = 0; j < fftSize; j++) {
-      wind[j] = buf[x*fftSize + j];
+      wind[j] = buf[idx + j];
     }
     var result = goodFft.realFFT(wind);
-    for (j = 0; j < h; j++) {
+    var scale = 10 / Math.log(10);
+    var norm = Math.log(fftSize) * 2 * scale;
+    idx = (x + (h-1) * w)*4;
+    for (j = 0; j < h; j++, idx -= w*4) {
       var re = result[j*2];
       var im = result[j*2+1];
       var amp = re*re + im*im;
-      bmp.data[(x + (h-j-1) * w)*4+0] = 0;
-      bmp.data[(x + (h-j-1) * w)*4+1] = Math.log(amp) * 20;
-      bmp.data[(x + (h-j-1) * w)*4+2] = 0;
-      bmp.data[(x + (h-j-1) * w)*4+3] = 255;
+      var db = amp > 0 ? Math.log(amp) * scale - norm : -100;
+      var pre = Math.max(0, (db - -100) / 70);
+      bmp.data[idx+0] = 0;
+      bmp.data[idx+1] = pre * pre * 255;
+      bmp.data[idx+2] = 0;
+      bmp.data[idx+3] = 255;
     }
   }
   ctx.putImageData(bmp, 0, 0);
@@ -207,7 +215,7 @@ function showPitch(ans, smpRate) {
   ctx.strokeStyle = "red";
   ctx.beginPath();
   for (var i = 0; i < ans.length; i++) {
-    var x = Math.floor(ans[i][0] * smpRate / fftSize);
+    var x = Math.floor(ans[i][0] * smpRate / fftSize) - spectrMove;
     var y = h-1 - Math.floor(ans[i][1] / smpRate * fftSize * 2);
     if (x < w) {
       ctx.moveTo(x,y);
@@ -322,4 +330,13 @@ function showProgress(text) {
   else {
     txtProgress.textContent = "";
   }
+}
+
+function moveSpec(cnt) {
+  if (!bb) return;
+  spectrMove += cnt;
+  if (spectrMove < 0) spectrMove = 0;
+  var buf = bb.buffer.getChannelData(0);
+  showSpectrum(buf, audioCtx.sampleRate);
+  showPitch(bb.pitch, audioCtx.sampleRate);
 }
