@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>speech2sing</title>
+  <script src="js/swLoader.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1>Request persistent storage</h1>
+  <p>If your data is deleted by browser, click this to request persistent storage.</p>
+  <p><button onclick='requestPersistent()'>Request persistent storage</button></p>
+<script>
+function requestPersistent() {
+  if (!navigator.storage || !navigator.storage.persist) {
+    alert("Browser does not support persistent storage. Sorry.");
+    return 'QQ';
+  }
+  return navigator.storage.persist().then(function (result) {
+    if (result) {
+      return navigator.storage.persisted();
+    }
+    else {
+      alert("Fail to request persistent storage");
+      return 'QQ';
+    }
+  }).then(function (result) {
+    if (result === true) {
+      alert("Successfully request persistent storage");
+    }
+    else if (result === false) {
+      alert("Fail to request persistent storage");
+    }
+  });
+}
+</script>
+</body>
+</html>
