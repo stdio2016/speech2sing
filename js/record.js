@@ -18,6 +18,7 @@ var clips = document.querySelector(".sound-clips");
 var audioElt = document.querySelector("audio");
 var useMimeType = "";
 var hasAnySound = false;
+var runnedFrame = 0;
 
 var streamForRecord = audioCtx.createGain();
 
@@ -170,6 +171,7 @@ function visualize(source) {
 
 function showWave() {
   visualizeCallbackId = requestAnimationFrame(showWave);
+  if (FPS.value == '0') return;
   var len;
   var hz = 0;
   if (!hasAnySound) {
@@ -212,6 +214,11 @@ function showWave() {
     analyser.getByteTimeDomainData(dataArray);
     len = dataArray.length;
   }
+  
+  // control frame rate
+  runnedFrame += FPS.value / 60;
+  if (runnedFrame < 1) return ;
+  runnedFrame -= 1;
 
   canvas.width = canvas.clientWidth;
   var width = canvas.width;
