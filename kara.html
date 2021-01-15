@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- inspired by https://github.com/mdn/web-dictaphone -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karaoke</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/alertbox.css">
+  <script src="js/forSafari.js"></script>
+  <script src="lib/IndexedDB-getAll-shim.js"></script>
+  <script src="lib/audio-recorder-polyfill/wave-encoder.js"></script>
+  <script src="lib/audio-recorder-polyfill/index.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="lib/fft.js"></script>
+  <script src="js/pitch.js"></script>
+</head>
+<body>
+  <!-- alert box -->
+  <div class="center-of-screen grayed-out" id='prompt' style='visibility: hidden; align-items: baseline;'>
+    <!--[if IE]>
+    <form class='prompt-box prompt-box-ie' action="javascript:void 3">
+    <![endif]-->
+    <!--[if !IE]> -->
+    <form class='prompt-box' action="javascript:void 3">
+    <!-- <![endif]-->
+      <div class='description' id='promptMessage'></div>
+      <div class='input'><input id='promptInput'></div>
+      <div class='yesno'>
+        <button onclick="promptCallback(true)" id='promptOK'>OK</button>
+        <button onclick="promptCallback(false)" id='promptCancel'>Cancel</button>
+      </div>
+    </form>
+  </div>
+  <!--[if IE]>
+  <div id='alert' class='alert-box alert-box-ie'>
+  <![endif]-->
+  <!--[if !IE]> -->
+  <div id='alert' class='alert-box' style='visibility: hidden;'>
+  <!-- <![endif]-->
+    <div class='title'>
+      <span>Error</span>
+      <input id='close' class='x' value='X' type='button'>
+    </div>
+    <!--[if IE]>
+    <pre class='description' id='description'>This program does not support IE. Please use Firefox or Chrome.</pre>
+    <![endif]-->
+    <!--[if !IE]> -->
+    <pre class='description' id='description'>An error occured when trying to show the error message</pre>
+    <!-- <![endif]-->
+  </div>
+  <script src='lib/alertbox.js'></script>
+  <!-- end of alert box -->
+
+<h1>Karaoke</h1>
+<section class="main-controls">
+  <canvas class="visualizer" height="60"></canvas>
+  <p>
+  <label for="timeOrFreq">Show in</label>
+  <select name="timeOrFreq" id="timeOrFreq">
+    <option value="time">Time domain</option>
+    <option value="freq">Frequency</option>
+    <option value="autocorrelation">Autocorrelation</option>
+    <option value="cepstrum">Cepstrum</option>
+  </select>
+  <label for="FPS">FPS</label>
+  <select name="FPS" id="FPS">
+    <option value="60">60</option>
+    <option value="30">30</option>
+    <option value="20">20</option>
+    <option value="15">15</option>
+    <option value="10">10</option>
+    <option value="0">pause</option>
+  </select>
+  </p>
+</section>
+<section class="sound-clips">
+Load a music
+<input type=file id="fileSound">
+<button onclick='loadAcc(fileSound)'>Load!</button>
+<br>
+<audio controls></audio>
+</section>
+<script type="text/javascript" src="js/kara.js"></script>
+</body>
+</html>
