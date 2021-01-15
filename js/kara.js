@@ -16,25 +16,37 @@ var useMimeType = "";
 var hasAnySound = false;
 var runnedFrame = 0;
 
+var echoedRecord = audioCtx.createGain();
+echoedRecord.gain.value = 1 - chkMute.checked;
+echoedRecord.connect(audioCtx.destination);
+
 var streamForRecord = audioCtx.createGain();
 var echo = audioCtx.createDelay();
 var echoDecay = audioCtx.createGain();
-var echoFilter = audioCtx.createBiquadFilter();
 echo.delayTime.value = 0.2;
-echoDecay.gain.value = 0.5;
+echoDecay.gain.value = 0.45 * chkEcho.checked;
 streamForRecord.connect(echo);
 echo.connect(echoDecay);
-echoDecay.connect(echoFilter);
-echoFilter.connect(echo);
+echoDecay.connect(echo);
 
-streamForRecord.connect(audioCtx.destination);
-echoFilter.connect(audioCtx.destination);
+streamForRecord.connect(echoedRecord);
+echoDecay.connect(echoedRecord);
+
+chkEcho.oninput = function () {
+  echoDecay.gain.value = 0.45 * chkEcho.checked;
+};
+
+chkMute.oninput = function () {
+  echoedRecord.gain.value = 1 - chkMute.checked;
+};
 
 function tryToGetRecorder() {
   var needs = {
     "audio": {
       'noiseSuppression': false,
-      'echoCancellation': true
+      'echoCancellation': false,
+      latency: 0.02,
+      mozAutoGainControl: false
     }
   };
 
@@ -42,8 +54,8 @@ function tryToGetRecorder() {
     try {
       audioStream = stream;
       audioStreamNode = audioCtx.createMediaStreamSource(stream);
-      audioStreamNode.connect(analyserRecord);
       audioStreamNode.connect(streamForRecord);
+      echoedRecord.connect(analyserRecord);
       visualize(analyserRecord);
     }
     catch (e) {
