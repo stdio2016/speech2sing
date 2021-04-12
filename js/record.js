@@ -286,7 +286,13 @@ function addClipInterface(nameAndDate) {
       else {
         try {
           var audioURL = window.URL.createObjectURL(result.file);
-          audioElt.src = audioURL;
+          audioElt.innerHTML = '';
+          audioElt.pause();
+          var srcElt = document.createElement('source');
+          srcElt.src = audioURL;
+          srcElt.type = result.file.type;
+          audioElt.appendChild(srcElt);
+          audioElt.load();
           sessionStorage.speech2sing_prevBlobURL = audioURL;
         }
         catch (x) {
