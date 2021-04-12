@@ -16,9 +16,11 @@ addEventListener('load', function () {
 });
 
 function resumeContext() {
-  if (audioCtx && audioLocked) {
+  if (audioCtx && audioCtx.state !== 'running') {
     // try resuming context
-    audioCtx.resume();
+    audioCtx.resume()['catch'](function (x) {
+      alert('Unable to play sound: ' + x);
+    });
     
     // play a beep sound
     var r = audioCtx.createOscillator();

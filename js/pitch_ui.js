@@ -126,6 +126,10 @@ function analyzeFile(file) {
     window.bb = {buffer: bb, pitch: ans};
   }
   function error(x) {
+    if (!x) {
+      alert('Decoding error');
+      return;
+    }
     switch (x.name) {
       case "EncodingError":
         alert("File is not an audio, or the format is not supported");

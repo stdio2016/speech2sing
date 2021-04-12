@@ -28,8 +28,11 @@ btnStop.disabled = true;
 function startRecord() {
   resumeContext();
   if (mediaRecorder.state === "recording") {
-    mediaRecorder.pause();
-    btnRecord.innerHTML = "Paused";
+    if (mediaRecorder.pause) {
+      // Safari does not support pause at this moment
+      mediaRecorder.pause();
+      btnRecord.innerHTML = "Paused";
+    }
   }
   else if (mediaRecorder.state === "paused"){
     mediaRecorder.resume();
