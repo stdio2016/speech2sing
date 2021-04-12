@@ -72,10 +72,11 @@ function getDefaultName() {
 }
 
 function stopRecordFinally() {
-  var mime;
+  var mime = useMimeType;
   if (useMimeType === "audio/wav") mime = "audio/wav";
   else if (useMimeType === "video/webm") mime = "audio/webm";
-  else {
+  else if (!useMimeType) {
+    // no mime type!
     mime = "audio/ogg; codecs=opus";
   }
   blob = new Blob(chunks, { 'type' : mime });
