@@ -95,7 +95,7 @@ function stopRecordFinally() {
       addClipInterface({name: name, date: now});
     }
     // XXX: looks like Safari doesn't like reusing media stream
-    if (isIOS || isSafari) {
+    if (0) {
       audioStreamNode.disconnect();
       audioStreamNode = null;
       tryToGetRecorder();
